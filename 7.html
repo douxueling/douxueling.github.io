@@ -1,0 +1,653 @@
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - CVMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #f1f2f4);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            height: 100vh;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            margin: 5px 15px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background-color: #3f4f63;
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            color: #3a506b;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            color: #3a506b;
+        }
+
+        /* 表单样式 */
+        .form-control:focus {
+            border-color: #3a506b;
+            box-shadow: 0 0 0 3px rgba(58, 80, 107, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #3a506b;
+            border-color: #3a506b;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2c3e50;
+            border-color: #2c3e50;
+        }
+
+        /* 设置选项卡样式 */
+        .settings-tabs {
+            margin-bottom: 20px;
+        }
+        .settings-tabs .nav-link {
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            margin-right: 5px;
+            background-color: #f8f9fa;
+            color: #3a506b;
+        }
+        .settings-tabs .nav-link.active {
+            background-color: #3a506b;
+            color: white;
+        }
+
+        /* 开关样式 */
+        .switch-toggle {
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+        .switch-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+        .switch-toggle.active {
+            background-color: #28a745;
+        }
+        .switch-toggle.active::after {
+            left: 22px;
+        }
+
+        /* Toast 容器 */
+        .toast-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        /* 密码显示/隐藏 */
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            cursor: pointer;
+            color: #747b8c;
+        }
+
+        /* 密码强度检测 */
+        .strength-meter {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+            background-color: #e9ecef;
+        }
+        .strength-meter-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        .strength-text {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .password-match {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录按钮 -->
+    <div class="login-button">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#loginModal">
+            <i class="bi bi-box-arrow-in-right me-1"></i> 登录
+        </button>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">登录</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名 / 邮箱</label>
+                            <input type="text" class="form-control" id="username" placeholder="请输入用户名或邮箱" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" placeholder="请输入密码" required>
+                                <span class="input-group-text password-toggle" id="passwordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">记住我</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">登 录</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <p class="text-center mb-0">还没有账号？ <a href="#" id="showRegister">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 sidebar">
+                <div class="text-center py-3">
+                    <img src="1.png" alt="Logo" class="img-fluid" style="max-width: 50px;">
+                    <h5 class="text-white mt-2">cvms</h5>
+                </div>
+                <ul class="nav flex-column mt-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="1.html">
+                            <i class="bi bi-shield-check"></i> 漏洞扫描
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="2.html">
+                            <i class="bi bi-exclamation-triangle"></i> 风险评估
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="3.html">
+                            <i class="bi bi-bell"></i> 实时监控
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="4.html">
+                            <i class="bi bi-file-earmark-text"></i> 报告生成
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="5.html">
+                            <i class="bi bi-lock"></i> 数据加密
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="user-management.html">
+                            <i class="bi bi-people"></i> 用户管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">
+                            <i class="bi bi-gear"></i> 系统设置
+                        </a>
+                    </li>
+                    <li class="nav-item mt-5">
+                        <a class="nav-link" href="#" id="logout">
+                            <i class="bi bi-box-arrow-right"></i> 退出登录
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="col-md-10 content">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">系统设置</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs settings-tabs" id="settingsTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">常规设置</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">安全设置</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications" type="button" role="tab" aria-controls="notifications" aria-selected="false">通知设置</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="monitoring-tab" data-bs-toggle="tab" data-bs-target="#monitoring" type="button" role="tab" aria-controls="monitoring" aria-selected="false">系统监控</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab" aria-controls="about" aria-selected="false">关于系统</button>
+                            </li>
+                        </ul>
+                        <div class="tab-content p-3" id="settingsTabContent">
+                            <!-- 常规设置 -->
+                            <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                                <form id="generalSettingsForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="systemName" class="form-label">系统名称</label>
+                                            <input type="text" class="form-control" id="systemName" value="CVMS - 漏洞管理系统" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="defaultPage" class="form-label">默认页面</label>
+                                            <select class="form-select" id="defaultPage" required>
+                                                <option value="dashboard" selected>仪表盘</option>
+                                                <option value="vulnerabilities">漏洞扫描</option>
+                                                <option value="risks">风险评估</option>
+                                                <option value="monitoring">实时监控</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="themeMode" class="form-label">主题模式</label>
+                                            <select class="form-select" id="themeMode" required>
+                                                <option value="light">浅色模式</option>
+                                                <option value="dark" selected>深色模式</option>
+                                                <option value="auto">自动</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="language" class="form-label">语言</label>
+                                            <select class="form-select" id="language" required>
+                                                <option value="zh-CN" selected>简体中文</option>
+                                                <option value="en-US">English</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="dateFormat" class="form-label">日期格式</label>
+                                            <select class="form-select" id="dateFormat" required>
+                                                <option value="YYYY-MM-DD" selected>YYYY-MM-DD</option>
+                                                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                                <option value="DD-MM-YYYY">DD-MM-YYYY</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="timeFormat" class="form-label">时间格式</label>
+                                            <select class="form-select" id="timeFormat" required>
+                                                <option value="24h" selected>24小时制</option>
+                                                <option value="12h">12小时制</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">系统更新</label>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="autoUpdate" checked>
+                                            <label class="form-check-label" for="autoUpdate">自动检查更新</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="betaUpdates">
+                                            <label class="form-check-label" for="betaUpdates">接收测试版更新</label>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">保存设置</button>
+                                </form>
+                            </div>
+
+                            <!-- 安全设置 -->
+                            <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                                <form id="securitySettingsForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="sessionTimeout" class="form-label">会话超时（分钟）</label>
+                                            <input type="number" class="form-control" id="sessionTimeout" value="30" min="5" max="120" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="passwordComplexity" class="form-label">密码复杂度要求</label>
+                                            <select class="form-select" id="passwordComplexity" required>
+                                                <option value="low">低</option>
+                                                <option value="medium" selected>中</option>
+                                                <option value="high">高</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="failedAttempts" class="form-label">失败尝试后锁定账户</label>
+                                            <input type="number" class="form-control" id="failedAttempts" value="5" min="3" max="10" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="lockDuration" class="form-label">锁定时长（分钟）</label>
+                                            <input type="number" class="form-control" id="lockDuration" value="30" min="5" max="120" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">API访问</label>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="enableAPI" checked>
+                                            <label class="form-check-label" for="enableAPI">启用API</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="apiAuthentication" checked>
+                                            <label class="form-check-label" for="apiAuthentication">API身份验证</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="apiRateLimiting">
+                                            <label class="form-check-label" for="apiRateLimiting">API速率限制</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="apiKeys" class="form-label">API密钥</label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="apiKeys" value="API_KEY_123456" readonly>
+                                            <button class="btn btn-outline-secondary" type="button" id="regenerateAPIKey">重新生成</button>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">保存设置</button>
+                                </form>
+                            </div>
+
+                            <!-- 通知设置 -->
+                            <div class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+                                <form id="notificationSettingsForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="notificationMethod" class="form-label">通知方式</label>
+                                            <select class="form-select" id="notificationMethod" required>
+                                                <option value="email" selected>邮件</option>
+                                                <option value="sms">短信</option>
+                                                <option value="both">两者</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="notificationLevel" class="form-label">通知级别</label>
+                                            <select class="form-select" id="notificationLevel" required>
+                                                <option value="all" selected>所有</option>
+                                                <option value="high">高风险</option>
+                                                <option value="medium">中高风险</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">邮件服务器配置</label>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="smtpHost" class="form-label">SMTP主机</label>
+                                                <input type="text" class="form-control" id="smtpHost" value="smtp.example.com" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="smtpPort" class="form-label">SMTP端口</label>
+                                                <input type="number" class="form-control" id="smtpPort" value="587" required>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="smtpUser" class="form-label">SMTP用户名</label>
+                                                <input type="text" class="form-control" id="smtpUser" value="user@example.com" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="smtpPassword" class="form-label">SMTP密码</label>
+                                                <div class="input-group">
+                                                    <input type="password" class="form-control" id="smtpPassword" value="password123">
+                                                    <span class="input-group-text password-toggle" id="smtpPasswordToggle">
+                                                        <i class="bi bi-eye-slash"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch mb-3">
+                                            <input class="form-check-input" type="checkbox" id="smtpSSL" checked>
+                                            <label class="form-check-label" for="smtpSSL">使用SSL</label>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-secondary" id="testEmail">测试邮件连接</button>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">实时警报</label>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="realtimeAlerts" checked>
+                                            <label class="form-check-label" for="realtimeAlerts">启用实时警报</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="alertSound">
+                                            <label class="form-check-label" for="alertSound">警报声音</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="alertPopup" checked>
+                                            <label class="form-check-label" for="alertPopup">弹出通知</label>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">保存设置</button>
+                                </form>
+                            </div>
+
+                            <!-- 系统监控 -->
+                            <div class="tab-pane fade" id="monitoring" role="tabpanel" aria-labelledby="monitoring-tab">
+                                <form id="monitoringSettingsForm">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="monitoringInterval" class="form-label">监控间隔（分钟）</label>
+                                            <input type="number" class="form-control" id="monitoringInterval" value="5" min="1" max="60" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="logRetention" class="form-label">日志保留时间（天）</label>
+                                            <input type="number" class="form-control" id="logRetention" value="30" min="7" max="365" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">性能监控</label>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="cpuMonitoring" checked>
+                                            <label class="form-check-label" for="cpuMonitoring">CPU使用率</label>
+                                        </div>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input" type="checkbox" id="memoryMonitoring" checked>
+                                            <label class="form-check-label" for="memoryMonitoring">内存使用率</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="diskMonitoring" checked>
+                                            <label class="form-check-label" for="diskMonitoring">磁盘使用率</label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">警报阈值</label>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="cpuThreshold" class="form-label">CPU使用率阈值（%）</label>
+                                                <input type="number" class="form-control" id="cpuThreshold" value="80" min="1" max="100" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="memoryThreshold" class="form-label">内存使用率阈值（%）</label>
+                                                <input type="number" class="form-control" id="memoryThreshold" value="85" min="1" max="100" required>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="diskThreshold" class="form-label">磁盘使用率阈值（%）</label>
+                                                <input type="number" class="form-control" id="diskThreshold" value="90" min="1" max="100" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="networkThreshold" class="form-label">网络带宽阈值（Mbps）</label>
+                                                <input type="number" class="form-control" id="networkThreshold" value="100" min="1" max="1000" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">保存设置</button>
+                                </form>
+                            </div>
+
+                            <!-- 关于系统 -->
+                            <div class="tab-pane fade" id="about" role="tabpanel" aria-labelledby="about-tab">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">关于CVMS</h5>
+                                        <p class="card-text">CVMS（漏洞管理系统）是一款功能强大的漏洞管理工具，帮助您识别、评估和修复系统中的安全漏洞。</p>
+                                        <ul class="list-group list-group-flush mb-3">
+                                            <li class="list-group-item"><strong>版本：</strong> 2.1.0</li>
+                                            <li class="list-group-item"><strong>发布日期：</strong> 2023-10-20</li>
+                                            <li class="list-group-item"><strong>开发者：</strong> CVMS团队</li>
+                                            <li class="list-group-item"><strong>支持：</strong> support@cvms.com</li>
+                                        </ul>
+                                        <button class="btn btn-outline-secondary" id="checkForUpdates">检查更新</button>
+                                        <button class="btn btn-outline-secondary" id="viewDocumentation">查看文档</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 显示通知
+        function showNotification(title, message) {
+            const toast = new bootstrap.Toast(document.getElementById('toast'));
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+
+        // 密码显示/隐藏
+        function setupPasswordToggle(inputId, toggleId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(toggleId);
+            
+            toggle.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    toggle.innerHTML = '<i class="bi bi-eye"></i>';
+                } else {
+                    input.type = 'password';
+                    toggle.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                }
+            });
+        }
+
+        setupPasswordToggle('smtpPassword', 'smtpPasswordToggle');
+
+        // 表单提交
+        document.getElementById('generalSettingsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('保存成功', '常规设置已成功更新！');
+        });
+
+        document.getElementById('securitySettingsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('保存成功', '安全设置已成功更新！');
+        });
+
+        document.getElementById('notificationSettingsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('保存成功', '通知设置已成功更新！');
+        });
+
+        document.getElementById('monitoringSettingsForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            showNotification('保存成功', '系统监控设置已成功更新！');
+        });
+
+        // 测试邮件连接
+        document.getElementById('testEmail').addEventListener('click', () => {
+            showNotification('测试成功', '邮件连接测试成功！');
+        });
+
+        // 检查更新
+        document.getElementById('checkForUpdates').addEventListener('click', () => {
+            showNotification('更新检查', '系统已是最新版本！');
+        });
+
+        // 查看文档
+        document.getElementById('viewDocumentation').addEventListener('click', () => {
+            showNotification('文档', '正在打开文档...');
+            // 模拟打开文档
+            setTimeout(() => {
+                showNotification('文档', '文档已成功打开！');
+            }, 1000);
+        });
+
+        // 重新生成API密钥
+        document.getElementById('regenerateAPIKey').addEventListener('click', () => {
+            // 模拟生成新密钥
+            const newApiKey = 'API_KEY_' + Math.floor(Math.random() * 1000000);
+            document.getElementById('apiKeys').value = newApiKey;
+            showNotification('API密钥', 'API密钥已成功重新生成！');
+        });
+
+        // 退出登录
+        document.getElementById('logout').addEventListener('click', (e) => {
+            e.preventDefault();
+            showNotification('退出成功', '您已成功退出系统');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

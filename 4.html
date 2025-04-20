@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报告生成</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f8f9fa;
+            --danger-color: #e63946;
+            --warning-color: #ff9f43;
+            --success-color: #27ae60;
+            --info-color: #3498db;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #e8e6e6, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradient 20s ease infinite;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 卡片样式 */
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: none;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            background-color: #fff;
+            border-bottom: none;
+            font-weight: 600;
+            color: #3a506b;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+        }
+        .card-header i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+            color: #3a506b;
+        }
+        .card-body {
+            padding: 20px;
+        }
+
+        /* 按钮样式 */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: #0d62c9;
+            border-color: #0d62c9;
+        }
+
+        /* 图表样式 */
+        .chart-container {
+            height: 250px;
+            margin-bottom: 20px;
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* 风险等级样式 */
+        .severity-high {
+            color: #dc3545;
+        }
+        .severity-medium {
+            color: #ffc107;
+        }
+        .severity-low {
+            color: #28a745;
+        }
+
+        /* 报告预览样式 */
+        #reportContent {
+            margin-top: 20px;
+        }
+
+        #pdfViewer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            margin-bottom: 10px;
+        }
+
+        .update-info {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-10">
+            <div class="card fade-in">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title">报告预览</h4>
+                    <div>
+                        <button class="btn btn-primary me-2" id="exportPDF">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> 导出 PDF
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportExcel">
+                            <i class="bi bi-file-earmark-excel me-1"></i> 导出 Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h5 id="reportTitle">安全报告 - 每日</h5>
+                        <p id="reportDate">生成时间：2023-10-15 15:45</p>
+                    </div>
+
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>告警时间</th>
+                                    <th>告警类型</th>
+                                    <th>告警描述</th>
+                                    <th>受影响资产</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="alertTable">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="bi bi-graph-up me-2"></i> 风险评估
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="reportRiskChart" class="chart-container"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <i class="bi bi-bar-chart me-2"></i> 漏洞统计
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="reportVulnerabilityChart" class="chart-container"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="bi bi-lightbulb me-2"></i> 修复建议
+                        </div>
+                        <div class="card-body">
+                            <ul id="recommendationsList" class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <strong>修复高危漏洞</strong>
+                                    <ul>
+                                        <li>下载并安装最新的安全补丁</li>
+                                        <li>重启相关服务以应用补丁</li>
+                                        <li>验证补丁安装是否成功</li>
+                                    </ul>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>加强用户认证机制</strong>
+                                    <ul>
+                                        <li>启用多因素认证</li>
+                                        <li>定期更新用户密码</li>
+                                        <li>限制失败登录尝试次数</li>
+                                    </ul>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>定期更新漏洞扫描</strong>
+                                    <ul>
+                                        <li>设置每周自动扫描任务</li>
+                                        <li>生成扫描报告并存档</li>
+                                        <li>及时处理新发现的漏洞</li>
+                                    </ul>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>实施最小权限原则</strong>
+                                    <ul>
+                                        <li>审查所有用户和系统的权限</li>
+                                        <li>仅授予必要的权限</li>
+                                        <li>定期审计权限配置</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let riskChart;
+        let vulnerabilityChart;
+
+        // 生成报告内容
+        function generateReport() {
+            const alertTableBody = document.getElementById('alertTable');
+            alertTableBody.innerHTML = '';
+
+            // 从localStorage获取3.html的告警数据
+            const storedData = localStorage.getItem('alertData');
+            if (storedData) {
+                window.alertData = JSON.parse(storedData);
+            }
+
+            // 使用3.html的告警数据
+            if (window.alertData && window.alertData.alerts) {
+                window.alertData.alerts.forEach((alert, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${alert.time}</td>
+                        <td class="severity-high">${alert.type}</td>
+                        <td>${alert.description}</td>
+                        <td>${alert.asset}</td>
+                        <td>${alert.status}</td>
+                    `;
+                    alertTableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="5" class="text-center">没有可用的告警数据</td>';
+                alertTableBody.appendChild(row);
+            }
+
+            // 更新图表
+            initReportCharts();
+        }
+
+        // 计算风险评估数据
+        function calculateRiskData(alerts) {
+            const riskCounts = {
+                high: 0,
+                medium: 0,
+                low: 0
+            };
+
+            alerts.forEach(alert => {
+                if (alert.severity === '高风险') {
+                    riskCounts.high++;
+                } else if (alert.severity === '中风险') {
+                    riskCounts.medium++;
+                } else if (alert.severity === '低风险') {
+                    riskCounts.low++;
+                }
+            });
+
+            return riskCounts;
+        }
+
+        // 计算漏洞统计数据
+        function calculateVulnerabilityData(alerts) {
+            const vulnerabilityCounts = {
+                high: 0,
+                medium: 0,
+                low: 0
+            };
+
+            alerts.forEach(alert => {
+                if (alert.severity === '高风险') {
+                    vulnerabilityCounts.high++;
+                } else if (alert.severity === '中风险') {
+                    vulnerabilityCounts.medium++;
+                } else if (alert.severity === '低风险') {
+                    vulnerabilityCounts.low++;
+                }
+            });
+
+            return vulnerabilityCounts;
+        }
+
+        // 初始化图表
+        function initReportCharts() {
+            const riskCtx = document.getElementById('reportRiskChart').getContext('2d');
+            const vulnCtx = document.getElementById('reportVulnerabilityChart').getContext('2d');
+
+            // 销毁旧图表
+            if (riskChart) {
+                riskChart.destroy();
+            }
+            if (vulnerabilityChart) {
+                vulnerabilityChart.destroy();
+            }
+
+            // 计算图表数据
+            let riskData = { high: 40, medium: 35, low: 25 };
+            let vulnerabilityData = { high: 3, medium: 2, low: 1 };
+
+            if (window.alertData && window.alertData.alerts) {
+                riskData = calculateRiskData(window.alertData.alerts);
+                vulnerabilityData = calculateVulnerabilityData(window.alertData.alerts);
+            }
+
+            // 风险评估图表
+            riskChart = new Chart(riskCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['高风险', '中风险', '低风险'],
+                    datasets: [{
+                        data: [riskData.high, riskData.medium, riskData.low],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(255, 205, 86, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 205, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // 漏洞统计图表
+            vulnerabilityChart = new Chart(vulnCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['高风险', '中风险', '低风险'],
+                    datasets: [{
+                        label: '漏洞数量',
+                        data: [vulnerabilityData.high, vulnerabilityData.medium, vulnerabilityData.low],
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(255, 159, 64, 0.7)',
+                            'rgba(255, 205, 86, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 205, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // 监听localStorage变化
+        window.addEventListener('storage', function(event) {
+            if (event.key === 'alertData') {
+                generateReport();
+            }
+        });
+
+        // 导出PDF
+        document.getElementById('exportPDF').addEventListener('click', function() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // 添加标题
+            doc.setFontSize(18);
+            doc.text('安全报告', 14, 20);
+
+            // 添加生成日期
+            doc.setFontSize(12);
+            doc.text(`生成日期: ${new Date().toLocaleDateString()}`, 14, 25);
+
+            // 添加表格数据
+            doc.setFontSize(14);
+            doc.text('告警列表', 14, 40);
+
+            // 表格数据
+            const tableColumn = ['告警时间', '告警类型', '告警描述', '受影响资产', '状态'];
+            const tableRows = [];
+
+            if (window.alertData && window.alertData.alerts) {
+                window.alertData.alerts.forEach(alert => {
+                    tableRows.push([
+                        alert.time,
+                        alert.type,
+                        alert.description,
+                        alert.asset,
+                        alert.status
+                    ]);
+                });
+            }
+
+            // 表格位置
+            let tableY = 45;
+
+            // 绘制表格
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: tableY,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [66, 139, 202] }
+            });
+
+            // 添加改进建议
+            doc.setFontSize(14);
+            doc.text('改进建议', 14, doc.lastAutoTable.finalY + 10);
+
+            const recommendations = [
+                '立即修复高危漏洞',
+                '加强用户认证机制，启用多因素认证',
+                '定期更新漏洞扫描，确保系统安全性',
+                '实施最小权限原则，限制不必要的访问权限'
+            ];
+
+            recommendations.forEach((rec, index) => {
+                doc.text(`${index + 1}. ${rec}`, 14, doc.lastAutoTable.finalY + 20 + (index * 8));
+            });
+
+            // 保存 PDF
+            doc.save('安全报告.pdf');
+        });
+
+        // 导出Excel
+        document.getElementById('exportExcel').addEventListener('click', function() {
+            // 创建工作表数据
+            const wsData = [
+                ['告警时间', '告警类型', '告警描述', '受影响资产', '状态']
+            ];
+
+            if (window.alertData && window.alertData.alerts) {
+                window.alertData.alerts.forEach(alert => {
+                    wsData.push([
+                        alert.time,
+                        alert.type,
+                        alert.description,
+                        alert.asset,
+                        alert.status
+                    ]);
+                });
+            }
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '告警列表');
+
+            // 导出文件
+            const date = new Date();
+            const fileName = `安全报告_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        });
+
+        // 页面加载完成后初始化图表
+        document.addEventListener('DOMContentLoaded', function() {
+            initReportCharts();
+            generateReport();
+        });
+    </script>
+    <hr>
+    <a href="index.html" align="center">返回</a>
+</body>
+</html>

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据加密</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #e8e6e6, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradient 20s ease infinite;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 主内容区域 */
+        .content {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+        .dashboard-header h3 {
+            color: #3a506b;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .dashboard-header p {
+            color: #747b8c;
+            margin-bottom: 0;
+        }
+
+        /* 卡片样式 */
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: none;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            background-color: #fff;
+            border-bottom: none;
+            font-weight: 600;
+            color: #3a506b;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+        }
+        .card-header i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+            color: #3a506b;
+        }
+        .card-body {
+            padding: 20px;
+        }
+
+        /* 表单样式 */
+        .form-control:focus {
+            border-color: #3a506b;
+            box-shadow: 0 0 0 3px rgba(58, 80, 107, 0.25);
+        }
+
+        .btn-primary {
+            background-color: #3a506b;
+            border-color: #3a506b;
+            transition: all 0.3s;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #2c3e50;
+            border-color: #2c3e50;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(44, 62, 80, 0.3);
+        }
+
+        /* 加载动画 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3a506b;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 响应式调整 */
+        @media (min-width: 992px) {
+            .content {
+                padding: 30px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* 密钥列表样式 */
+        .key-item {
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 10px;
+        }
+        .key-item:hover {
+            background-color: #e9ecef;
+        }
+        .key-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 加密状态样式 */
+        .encryption-status {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 10px;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .status-encrypted {
+            background-color: #28a745;
+        }
+        .status-encrypting {
+            background-color: #ffc107;
+        }
+        .status-failed {
+            background-color: #dc3545;
+        }
+
+        /* 密钥生成进度条 */
+        .progress {
+            height: 8px;
+            margin-top: 5px;
+        }
+
+        /* 表格样式 */
+        .table th, .table td {
+            padding: 12px 15px;
+        }
+
+        /* 导航栏样式 */
+        .navbar {
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .navbar-brand {
+            font-weight: 600;
+            color: #3a506b !important;
+        }
+        .nav-link {
+            color: #3a506b !important;
+            font-weight: 500;
+            margin: 0 10px;
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            color: #2c3e50 !important;
+            transform: translateY(-2px);
+        }
+        .nav-link.active {
+            color: #2c3e50 !important;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主内容区域 -->
+    <div class="content">
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-expand-lg mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="bi bi-shield-lock me-2"></i> 数据加密
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#key-management">
+                                <i class="bi bi-key me-1"></i> 密钥管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#encryption-status">
+                                <i class="bi bi-check-circle me-1"></i> 加密状态
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#encryption-logs">
+                                <i class="bi bi-clock-history me-1"></i> 加密日志
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <header class="dashboard-header">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>数据加密</h3>
+                </div>
+                <div class="d-flex align-items-center">
+                </div>
+            </div>
+        </header>
+
+        <!-- 密钥管理 -->
+        <div class="card mt-4" id="key-management">
+            <div class="card-header">
+                <i class="bi bi-key me-2"></i> 密钥管理
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="keyName" class="form-label">密钥名称</label>
+                            <input type="text" class="form-control" id="keyName" placeholder="输入密钥名称">
+                        </div>
+                        <div class="mb-3">
+                            <label for="keyAlgorithm" class="form-label">加密算法</label>
+                            <select class="form-select" id="keyAlgorithm">
+                                <option value="AES">AES-256</option>
+                                <option value="RSA">RSA-4096</option>
+                                <option value="SHA">SHA-256</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" id="generateKey">
+                            <i class="bi bi-plus-circle me-1"></i> 生成密钥
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>已生成密钥</h5>
+                        <div class="key-list" id="keyList">
+                            <div class="key-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>财务数据密钥</strong>
+                                        <div class="text-muted">AES-256</div>
+                                    </div>
+                                    <div class="key-actions">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download me-1"></i> 导出
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash me-1"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="key-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>用户数据密钥</strong>
+                                        <div class="text-muted">RSA-4096</div>
+                                    </div>
+                                    <div class="key-actions">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download me-1"></i> 导出
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash me-1"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="key-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>日志密钥</strong>
+                                        <div class="text-muted">SHA-256</div>
+                                    </div>
+                                    <div class="key-actions">
+                                        <button class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-download me-1"></i> 导出
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash me-1"></i> 删除
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据加密状态 -->
+        <div class="card mt-4" id="encryption-status">
+            <div class="card-header">
+                <i class="bi bi-check-circle me-2"></i> 加密状态
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>加密进度</h5>
+                        <div class="encryption-status">
+                            <div class="status-indicator status-encrypted"></div>
+                            <div>
+                                <strong>财务数据</strong>
+                                <div class="text-muted">已加密</div>
+                            </div>
+                        </div>
+                        <div class="encryption-status">
+                            <div class="status-indicator status-encrypting"></div>
+                            <div>
+                                <strong>用户数据</strong>
+                                <div class="text-muted">加密中 (75%)</div>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-info" role="progressbar" style="width: 75%"></div>
+                            </div>
+                        </div>
+                        <div class="encryption-status">
+                            <div class="status-indicator status-failed"></div>
+                            <div>
+                                <strong>日志数据</strong>
+                                <div class="text-muted">加密失败</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" id="retryEncryption">
+                                <i class="bi bi-arrow-repeat me-1"></i> 重试
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>加密操作</h5>
+                        <div class="card bg-light mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">加密新数据</h6>
+                                <div class="mb-3">
+                                    <label for="dataName" class="form-label">数据名称</label>
+                                    <input type="text" class="form-control" id="dataName" placeholder="输入数据名称">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="encryptionKey" class="form-label">选择密钥</label>
+                                    <select class="form-select" id="encryptionKey">
+                                        <option value="财务数据密钥">财务数据密钥 (AES-256)</option>
+                                        <option value="用户数据密钥">用户数据密钥 (RSA-4096)</option>
+                                        <option value="日志密钥">日志密钥 (SHA-256)</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" id="encryptData">
+                                    <i class="bi bi-lock me-1"></i> 开始加密
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加密日志 -->
+        <div class="card mt-4" id="encryption-logs">
+            <div class="card-header">
+                <i class="bi bi-clock-history me-2"></i> 加密日志
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>操作</th>
+                                <th>数据名称</th>
+                                <th>状态</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>2023-10-15 14:30</td>
+                                <td>加密</td>
+                                <td>财务数据</td>
+                                <td><span class="badge bg-success">成功</span></td>
+                                <td>使用财务数据密钥 (AES-256) 加密</td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 14:15</td>
+                                <td>加密</td>
+                                <td>用户数据</td>
+                                <td><span class="badge bg-info text-dark">进行中</span></td>
+                                <td>使用用户数据密钥 (RSA-4096) 加密</td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 14:00</td>
+                                <td>加密</td>
+                                <td>日志数据</td>
+                                <td><span class="badge bg-danger">失败</span></td>
+                                <td>密钥无效，加密失败</td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 13:45</td>
+                                <td>生成密钥</td>
+                                <td>日志密钥</td>
+                                <td><span class="badge bg-success">成功</span></td>
+                                <td>生成 SHA-256 密钥</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 密钥生成
+        document.getElementById('generateKey').addEventListener('click', function() {
+            const keyName = document.getElementById('keyName').value;
+            const keyAlgorithm = document.getElementById('keyAlgorithm').value;
+            
+            if (!keyName) {
+                alert('请输入密钥名称');
+                return;
+            }
+            
+            // 显示加载动画
+            const loader = document.createElement('div');
+            loader.className = 'loader';
+            this.parentNode.insertBefore(loader, this);
+            this.style.display = 'none';
+            
+            // 模拟密钥生成过程
+            setTimeout(() => {
+                loader.remove();
+                this.style.display = 'inline-block';
+                
+                // 添加新密钥到列表
+                const keyList = document.getElementById('keyList');
+                const newKeyItem = document.createElement('div');
+                newKeyItem.className = 'key-item';
+                newKeyItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${keyName}</strong>
+                            <div class="text-muted">${keyAlgorithm === 'AES' ? 'AES-256' : keyAlgorithm === 'RSA' ? 'RSA-4096' : 'SHA-256'}</div>
+                        </div>
+                        <div class="key-actions">
+                            <button class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-download me-1"></i> 导出
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash me-1"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                `;
+                keyList.insertBefore(newKeyItem, keyList.firstChild);
+                
+                // 显示成功消息
+                alert(`密钥 "${keyName}" 已成功生成！`);
+            }, 2000);
+        });
+
+        // 数据加密
+        document.getElementById('encryptData').addEventListener('click', function() {
+            const dataName = document.getElementById('dataName').value;
+            const encryptionKey = document.getElementById('encryptionKey').value;
+            
+            if (!dataName) {
+                alert('请输入数据名称');
+                return;
+            }
+            
+            // 显示加载动画
+            const loader = document.createElement('div');
+            loader.className = 'loader';
+            this.parentNode.insertBefore(loader, this);
+            this.style.display = 'none';
+            
+            // 模拟加密过程
+            setTimeout(() => {
+                loader.remove();
+                this.style.display = 'inline-block';
+                
+                // 显示成功消息
+                alert(`数据 "${dataName}" 加密成功！`);
+                
+                // 更新加密状态
+                const statusIndicator = document.createElement('div');
+                statusIndicator.className = 'status-indicator status-encrypted';
+                
+                const statusContent = document.createElement('div');
+                statusContent.innerHTML = `
+                    <strong>${dataName}</strong>
+                    <div class="text-muted">已加密</div>
+                `;
+                
+                const newStatus = document.createElement('div');
+                newStatus.className = 'encryption-status';
+                newStatus.appendChild(statusIndicator);
+                newStatus.appendChild(statusContent);
+                
+                const encryptionStatusContainer = document.querySelector('.col-md-6 .encryption-status:first-child').parentNode;
+                encryptionStatusContainer.insertBefore(newStatus, encryptionStatusContainer.firstChild);
+            }, 2000);
+        });
+
+        // 删除密钥
+        document.querySelectorAll('.key-actions .btn-outline-danger').forEach(button => {
+            button.addEventListener('click', function() {
+                const keyName = this.closest('.key-item').querySelector('strong').textContent;
+                if (confirm(`确定要删除密钥 "${keyName}" 吗？`)) {
+                    this.closest('.key-item').remove();
+                    alert(`密钥 "${keyName}" 已成功删除！`);
+                }
+            });
+        });
+
+        // 导出密钥
+        document.querySelectorAll('.key-actions .btn-outline-primary').forEach(button => {
+            button.addEventListener('click', function() {
+                const keyName = this.closest('.key-item').querySelector('strong').textContent;
+                alert(`密钥 "${keyName}" 已成功导出！`);
+            });
+        });
+
+        // 重试加密失败的数据
+        document.getElementById('retryEncryption').addEventListener('click', function() {
+            const dataName = '日志数据';
+            
+            // 显示加载状态
+            this.style.display = 'none';
+            const loader = document.createElement('div');
+            loader.className = 'loader';
+            this.parentNode.insertBefore(loader, this);
+            
+            // 模拟加密过程
+            let progress = 0;
+            const progressBar = this.closest('.encryption-status').querySelector('.progress-bar');
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = `${progress}%`;
+                this.closest('.encryption-status').querySelector('.text-muted').textContent = `加密中 (${progress}%)`;
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    this.closest('.encryption-status').innerHTML = `
+                        <div class="status-indicator status-encrypted"></div>
+                        <div>
+                            <strong>${dataName}</strong>
+                            <div class="text-muted">已加密</div>
+                        </div>
+                    `;
+                }
+            }, 500);
+        });
+    </script>
+    <hr>
+    <a href="index.html" ><h align="center">返回</h>
+</body>
+</html>

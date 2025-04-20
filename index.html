@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CVMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #f1f2f4);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            height: 100vh;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 8px;
+            margin: 5px 15px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background-color: #3f4f63;
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+        }
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            color: #3a506b;
+        }
+        .stats-card {
+            text-align: center;
+            padding: 15px;
+            transition: transform 0.3s;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        .stats-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        .stats-card .label {
+            color: #747b8c;
+            font-size: 0.9rem;
+        }
+        .severity-high {
+            color: #e74c3c;
+        }
+        .severity-medium {
+            color: #f39c12;
+        }
+        .severity-low {
+            color: #27ae60;
+        }
+        .dashboard-chart {
+            height: 300px;
+            margin-top: 20px;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            color: #3a506b;
+        }
+        .alert-card {
+            border-left: 4px solid #e74c3c;
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+        .user-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Toast 容器 */
+        .toast-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+
+        /* 表单样式 */
+        .form-control:focus {
+            border-color: #3a506b;
+            box-shadow: 0 0 0 3px rgba(58, 80, 107, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #3a506b;
+            border-color: #3a506b;
+            transition: all 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2c3e50;
+            border-color: #2c3e50;
+        }
+
+        /* 密码显示/隐藏 */
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            cursor: pointer;
+            color: #747b8c;
+        }
+
+        /* 密码强度检测 */
+        .strength-meter {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+            background-color: #e9ecef;
+        }
+        .strength-meter-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+        .strength-text {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        .password-match {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* 隐藏内容的样式 */
+        .hidden-content {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录模态框 -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">登录</h5>
+                </div>
+                <div class="modal-body">
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名 / 邮箱</label>
+                            <input type="text" class="form-control" id="username" placeholder="请输入用户名或邮箱" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" placeholder="请输入密码" required>
+                                <span class="input-group-text password-toggle" id="passwordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">记住我</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">登 录</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <p class="text-center mb-0">还没有账号？ <a href="#" id="showRegister">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 注册模态框 -->
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建新账号</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="regUsername" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="regUsername" placeholder="请设置用户名" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="regEmail" class="form-label">电子邮箱</label>
+                            <input type="email" class="form-control" id="regEmail" placeholder="请输入电子邮箱" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="regPassword" class="form-label">密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="regPassword" placeholder="请设置密码" required>
+                                <span class="input-group-text password-toggle" id="regPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                            <div class="strength-meter">
+                                <div class="strength-meter-fill" id="strengthMeterFill" style="width: 0%; background-color: #e74c3c;"></div>
+                            </div>
+                            <div class="strength-text text-muted" id="strengthText">密码强度: 弱</div>
+                            <div class="password-match text-danger" id="regPasswordMatch">密码不匹配</div>
+                            <div class="password-match text-success" id="regPasswordMatchSuccess">密码匹配</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">确认密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" placeholder="请再次输入密码" required>
+                                <span class="input-group-text password-toggle" id="confirmPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="agreeTerms" required>
+                            <label class="form-check-label" for="agreeTerms">我已阅读并同意<a href="#">服务条款</a>和<a href="#">隐私政策</a></label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">注 册</button>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <p class="text-center mb-0">已有账号？ <a href="#" id="showLogin">立即登录</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <div class="col-md-2 sidebar hidden-content" id="sidebarContent">
+                <div class="text-center py-3">
+                    <img src="1.png" alt="Logo" class="img-fluid" style="max-width: 50px;">
+                    <h5 class="text-white mt-2">CVMS</h5>
+                </div>
+                <ul class="nav flex-column mt-4">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="1.html">
+                            <i class="bi bi-shield-check"></i> 漏洞扫描识别
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="2.html">
+                            <i class="bi bi-exclamation-triangle"></i> 风险评估
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="3.html">
+                            <i class="bi bi-bell"></i> 实时监控告警
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="4.html">
+                            <i class="bi bi-file-earmark-text"></i> 报告生成
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="5.html">
+                            <i class="bi bi-lock"></i> 数据加密
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="6.html">
+                            <i class="bi bi-people"></i> 用户管理
+                        </a>
+                    </li>
+                    <li class="nav-item mt-5">
+                        <a class="nav-link" href="7.html">
+                            <i class="bi bi-gear"></i> 系统设置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="8.html" id="logout">
+                            <i class="bi bi-box-arrow-right"></i> 退出登录
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- 主内容区域 -->
+            <div class="col-md-10 content hidden-content" id="mainContent">
+                <div class="card">
+                    <div class="card-header">
+                        欢迎使用 CVMS 系统
+                    </div>
+                    <div class="card-body">
+                        <p>您已成功登录系统，可以开始使用以下功能：</p>
+                        <ul>
+                            <li>漏洞扫描识别</li>
+                            <li>风险评估</li>
+                            <li>实时监控告警</li>
+                            <li>报告生成</li>
+                            <li>数据加密</li>
+                            <li>用户管理</li>
+                            <li>系统设置</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                <strong class="me-auto" id="toastTitle">提示</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                这是一个提示信息。
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 显示通知
+        function showNotification(title, message) {
+            const toast = new bootstrap.Toast(document.getElementById('toast'));
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            
+            if (isLoggedIn) {
+                // 显示内容
+                document.getElementById('sidebarContent').classList.remove('hidden-content');
+                document.getElementById('mainContent').classList.remove('hidden-content');
+            } else {
+                // 隐藏内容
+                document.getElementById('sidebarContent').classList.add('hidden-content');
+                document.getElementById('mainContent').classList.add('hidden-content');
+                
+                // 显示登录模态框
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }
+        }
+
+        // 页面加载时检查登录状态
+        window.onload = function() {
+            checkLoginStatus();
+        };
+
+        // 获取用户数据
+        function getUserData() {
+            const users = localStorage.getItem('users');
+            return users ? JSON.parse(users) : [];
+        }
+
+        // 保存用户数据
+        function saveUserData(users) {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+
+        // 登录表单提交
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // 获取用户数据
+            const users = getUserData();
+            
+            // 验证用户名和密码
+            const user = users.find(u => u.username === username || u.email === username);
+            
+            if (user && user.password === btoa(password)) {
+                // 登录成功
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('username', username);
+                
+                showNotification('登录成功', `欢迎回来，${username}！`);
+                
+                // 隐藏登录模态框
+                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                if (loginModal) {
+                    loginModal.hide();
+                }
+                
+                // 显示主内容
+                document.getElementById('sidebarContent').classList.remove('hidden-content');
+                document.getElementById('mainContent').classList.remove('hidden-content');
+            } else {
+                // 登录失败
+                showNotification('登录失败', '用户名或密码错误，请重试！');
+            }
+        });
+
+        // 注册模态框切换
+        document.getElementById('showRegister').addEventListener('click', (e) => {
+            e.preventDefault();
+            const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+            if (loginModal) {
+                loginModal.hide();
+            }
+            const registerModal = new bootstrap.Modal(document.getElementById('registerModal'));
+            registerModal.show();
+        });
+
+        document.getElementById('showLogin').addEventListener('click', (e) => {
+            e.preventDefault();
+            const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+            if (registerModal) {
+                registerModal.hide();
+            }
+            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        });
+
+        // 密码显示/隐藏
+        function setupPasswordToggle(inputId, toggleId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(toggleId);
+            
+            toggle.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    toggle.innerHTML = '<i class="bi bi-eye"></i>';
+                } else {
+                    input.type = 'password';
+                    toggle.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                }
+            });
+        }
+
+        setupPasswordToggle('password', 'passwordToggle');
+        setupPasswordToggle('regPassword', 'regPasswordToggle');
+        setupPasswordToggle('confirmPassword', 'confirmPasswordToggle');
+
+        // 密码强度检测
+        const regPassword = document.getElementById('regPassword');
+        const strengthMeterFill = document.getElementById('strengthMeterFill');
+        const strengthText = document.getElementById('strengthText');
+        
+        regPassword.addEventListener('input', () => {
+            const password = regPassword.value;
+            
+            if (password.length === 0) {
+                strengthMeterFill.style.width = '0%';
+                strengthMeterFill.style.backgroundColor = '#e74c3c';
+                strengthText.textContent = '密码强度: 弱';
+                strengthText.className = 'strength-text text-muted';
+                return;
+            }
+            
+            // 简单密码强度检测
+            let strength = 0;
+            if (password.length >= 8) strength += 20;
+            if (/[A-Z]/.test(password)) strength += 20;
+            if (/[a-z]/.test(password)) strength += 20;
+            if (/[0-9]/.test(password)) strength += 20;
+            if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+            
+            // 更新密码强度显示
+            strengthMeterFill.style.width = `${Math.min(strength, 100)}%`;
+            
+            if (strength < 40) {
+                strengthMeterFill.style.backgroundColor = '#e74c3c';
+                strengthText.textContent = '密码强度: 弱';
+                strengthText.className = 'strength-text text-danger';
+            } else if (strength < 70) {
+                strengthMeterFill.style.backgroundColor = '#f39c12';
+                strengthText.textContent = '密码强度: 中';
+                strengthText.className = 'strength-text text-warning';
+            } else {
+                strengthMeterFill.style.backgroundColor = '#27ae60';
+                strengthText.textContent = '密码强度: 强';
+                strengthText.className = 'strength-text text-success';
+            }
+        });
+
+        // 密码一致性检测
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordMatchError = document.getElementById('regPasswordMatch');
+        const passwordMatchSuccess = document.getElementById('regPasswordMatchSuccess');
+        
+        confirmPassword.addEventListener('input', () => {
+            const password = regPassword.value;
+            const confirmPasswordValue = confirmPassword.value;
+            
+            if (password !== confirmPasswordValue) {
+                passwordMatchError.style.display = 'block';
+                passwordMatchSuccess.style.display = 'none';
+                confirmPassword.classList.add('is-invalid');
+            } else {
+                passwordMatchError.style.display = 'none';
+                passwordMatchSuccess.style.display = 'block';
+                confirmPassword.classList.remove('is-invalid');
+            }
+        });
+
+        // 注册表单提交
+        document.getElementById('registerForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPasswordValue = document.getElementById('confirmPassword').value;
+            
+            // 简单验证
+            if (!username || !email || !password || !confirmPasswordValue) {
+                showNotification('注册失败', '请填写所有必填字段！');
+                return;
+            }
+            
+            if (password !== confirmPasswordValue) {
+                showNotification('注册失败', '请确保密码匹配！');
+                return;
+            }
+            
+            // 检查用户名和邮箱是否已存在
+            const users = getUserData();
+            if (users.some(u => u.username === username)) {
+                showNotification('注册失败', '用户名已存在，请选择其他用户名！');
+                return;
+            }
+            
+            if (users.some(u => u.email === email)) {
+                showNotification('注册失败', '邮箱已存在，请使用其他邮箱！');
+                return;
+            }
+            
+            // 注册成功，保存用户数据
+            const newUser = {
+                username,
+                email,
+                password: btoa(password) // 使用 Base64 对密码进行简单加密
+            };
+            
+            users.push(newUser);
+            saveUserData(users);
+            
+            // 显示注册成功提示
+            showNotification('注册成功', '您的账号已创建成功，请登录系统。');
+            
+            // 3秒后切换到登录模态框
+            setTimeout(() => {
+                const registerModal = bootstrap.Modal.getInstance(document.getElementById('registerModal'));
+                if (registerModal) {
+                    registerModal.hide();
+                }
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }, 3000);
+        });
+
+        // 退出登录
+        document.getElementById('logout').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('username');
+            showNotification('退出成功', '您已成功退出系统');
+            
+            // 显示登录模态框
+            setTimeout(() => {
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
