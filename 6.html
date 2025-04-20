@@ -23,41 +23,25 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* 侧边栏样式 */
-        .sidebar {
-            background-color: #2c3e50;
-            min-height: 100vh;
-            padding: 20px 0;
-        }
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.85);
-            border-radius: 8px;
-            margin: 5px 15px;
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        .sidebar .nav-link.active {
-            background-color: #3f4f63;
-            color: white;
-        }
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            font-size: 1.2em;
-        }
+        /* 主内容区样式 */
         .content {
             padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            height: 100vh;
+            overflow-y: auto;
         }
+
         .card {
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             margin-bottom: 20px;
             border: none;
         }
+
         .card-header {
             border-radius: 10px 10px 0 0 !important;
             background-color: #fff;
@@ -65,16 +49,19 @@
             font-weight: 600;
             color: #3a506b;
         }
+
         .table th {
             background-color: #f8f9fa;
             color: #3a506b;
         }
+
         .user-avatar {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
         }
+
         .user-status {
             display: inline-block;
             padding: 3px 8px;
@@ -82,22 +69,27 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
+
         .status-active {
             background-color: #d4edda;
             color: #155724;
         }
+
         .status-inactive {
             background-color: #fff3cd;
             color: #856404;
         }
+
         .status-blocked {
             background-color: #f8d7da;
             color: #721c24;
         }
+
         .user-action-btn {
             padding: 4px 8px;
             margin: 0 2px;
         }
+
         .switch-toggle {
             display: inline-block;
             width: 40px;
@@ -107,6 +99,7 @@
             position: relative;
             cursor: pointer;
         }
+
         .switch-toggle::after {
             content: '';
             position: absolute;
@@ -118,9 +111,11 @@
             left: 2px;
             transition: 0.3s;
         }
+
         .switch-toggle.active {
             background-color: #28a745;
         }
+
         .switch-toggle.active::after {
             left: 22px;
         }
@@ -136,6 +131,7 @@
             border-color: #3a506b;
             transition: all 0.3s;
         }
+
         .btn-primary:hover {
             background-color: #2c3e50;
             border-color: #2c3e50;
@@ -157,15 +153,18 @@
             margin-top: 5px;
             background-color: #e9ecef;
         }
+
         .strength-meter-fill {
             height: 100%;
             border-radius: 5px;
             transition: width 0.3s, background-color 0.3s;
         }
+
         .strength-text {
             font-size: 0.8rem;
             margin-top: 5px;
         }
+
         .password-match {
             font-size: 0.8rem;
             margin-top: 5px;
@@ -182,230 +181,178 @@
     </style>
 </head>
 <body>
-    <!-- 侧边栏 -->
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-md-2 sidebar">
-                <div class="text-center py-3">
-                    <img src="1.png" alt="Logo" class="img-fluid" style="max-width: 50px;">
-                    <h5 class="text-white mt-2">cvms</h5>
-                </div>
-                <ul class="nav flex-column mt-4">
-                    <li class="nav-item">
-                        <a class="nav-link" href="1.html">
-                            <i class="bi bi-shield-check"></i> 漏洞扫描
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="2.html">
-                            <i class="bi bi-exclamation-triangle"></i> 风险评估
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="3.html">
-                            <i class="bi bi-bell"></i> 实时监控
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="4.html">
-                            <i class="bi bi-file-earmark-text"></i> 报告生成
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="5.html">
-                            <i class="bi bi-lock"></i> 数据加密
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#">
-                            <i class="bi bi-people"></i> 用户管理
-                        </a>
-                    </li>
-                    <li class="nav-item mt-5">
-                        <a class="nav-link" href="#">
-                            <i class="bi bi-gear"></i> 系统设置
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="logout">
-                            <i class="bi bi-box-arrow-right"></i> 退出登录
-                        </a>
-                    </li>
-                </ul>
+    <!-- 主内容区 -->
+    <hr>
+    <a href="index.html" ><h align="center">返回</h></a>
+    <div class="content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">用户管理</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="bi bi-plus-circle me-1"></i> 添加用户
+                </button>
             </div>
-
-            <!-- 主内容区 -->
-            <div class="col-md-10 content">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">用户管理</h5>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-                            <i class="bi bi-plus-circle me-1"></i> 添加用户
-                        </button>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" placeholder="搜索用户...">
-                                        <button class="btn btn-outline-secondary" type="button">
-                                            <i class="bi bi-search"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="d-flex justify-content-end">
-                                        <select class="form-select me-2" style="width: 150px;">
-                                            <option selected>所有状态</option>
-                                            <option>活跃</option>
-                                            <option>禁用</option>
-                                            <option>已锁定</option>
-                                        </select>
-                                        <select class="form-select" style="width: 150px;">
-                                            <option selected>所有角色</option>
-                                            <option>管理员</option>
-                                            <option>审计员</option>
-                                            <option>普通用户</option>
-                                        </select>
-                                    </div>
-                                </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="搜索用户...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
                             </div>
                         </div>
-
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">用户头像</th>
-                                        <th scope="col">用户名</th>
-                                        <th scope="col">邮箱</th>
-                                        <th scope="col">角色</th>
-                                        <th scope="col">状态</th>
-                                        <th scope="col">最后登录</th>
-                                        <th scope="col">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>
-                                            <img src="2.jpg" alt="User Avatar" class="user-avatar">
-                                        </td>
-                                        <td>admin</td>
-                                        <td>admin@example.com</td>
-                                        <td>管理员</td>
-                                        <td>
-                                            <span class="user-status status-active">活跃</span>
-                                        </td>
-                                        <td>2023-10-15 14:30</td>
-                                        <td>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger user-action-btn">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <label class="switch-toggle active" data-user-id="1" onclick="toggleUserStatus(1)">
-                                                    <input type="checkbox" style="display: none;">
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <img src="2.jpg" alt="User Avatar" class="user-avatar">
-                                        </td>
-                                        <td>auditor</td>
-                                        <td>auditor@example.com</td>
-                                        <td>审计员</td>
-                                        <td>
-                                            <span class="user-status status-active">活跃</span>
-                                        </td>
-                                        <td>2023-10-14 09:15</td>
-                                        <td>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger user-action-btn">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <label class="switch-toggle active" data-user-id="2" onclick="toggleUserStatus(2)">
-                                                    <input type="checkbox" style="display: none;">
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <img src="2.jpg" alt="User Avatar" class="user-avatar">
-                                        </td>
-                                        <td>user1</td>
-                                        <td>user1@example.com</td>
-                                        <td>普通用户</td>
-                                        <td>
-                                            <span class="user-status status-inactive">禁用</span>
-                                        </td>
-                                        <td>2023-10-10 16:45</td>
-                                        <td>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger user-action-btn">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <label class="switch-toggle" data-user-id="3" onclick="toggleUserStatus(3)">
-                                                    <input type="checkbox" style="display: none;">
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <img src="2.jpg" alt="User Avatar" class="user-avatar">
-                                        </td>
-                                        <td>user2</td>
-                                        <td>user2@example.com</td>
-                                        <td>普通用户</td>
-                                        <td>
-                                            <span class="user-status status-blocked">已锁定</span>
-                                        </td>
-                                        <td>2023-10-05 11:20</td>
-                                        <td>
-                                            <div class="d-flex">
-                                                <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger user-action-btn">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <label class="switch-toggle" data-user-id="4" onclick="toggleUserStatus(4)">
-                                                    <input type="checkbox" style="display: none;">
-                                                </label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <select class="form-select me-2" style="width: 150px;">
+                                    <option selected>所有状态</option>
+                                    <option>活跃</option>
+                                    <option>禁用</option>
+                                    <option>已锁定</option>
+                                </select>
+                                <select class="form-select" style="width: 150px;">
+                                    <option selected>所有角色</option>
+                                    <option>管理员</option>
+                                    <option>审计员</option>
+                                    <option>普通用户</option>
+                                </select>
+                            </div>
                         </div>
-
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
-                                </li>
-                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                <li class="page-item">
-                                    <a class="page-link" href="#">下一页</a>
-                                </li>
-                            </ul>
-                        </nav>
                     </div>
                 </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th scope="col">用户头像</th>
+                                <th scope="col">用户名</th>
+                                <th scope="col">邮箱</th>
+                                <th scope="col">角色</th>
+                                <th scope="col">状态</th>
+                                <th scope="col">最后登录</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>admin</td>
+                                <td>admin@example.com</td>
+                                <td>管理员</td>
+                                <td>
+                                    <span class="user-status status-active">活跃</span>
+                                </td>
+                                <td>2023-10-15 14:30</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle active" data-user-id="1" onclick="toggleUserStatus(1)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>auditor</td>
+                                <td>auditor@example.com</td>
+                                <td>审计员</td>
+                                <td>
+                                    <span class="user-status status-active">活跃</span>
+                                </td>
+                                <td>2023-10-14 09:15</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle active" data-user-id="2" onclick="toggleUserStatus(2)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>user1</td>
+                                <td>user1@example.com</td>
+                                <td>普通用户</td>
+                                <td>
+                                    <span class="user-status status-inactive">禁用</span>
+                                </td>
+                                <td>2023-10-10 16:45</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle" data-user-id="3" onclick="toggleUserStatus(3)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>user2</td>
+                                <td>user2@example.com</td>
+                                <td>普通用户</td>
+                                <td>
+                                    <span class="user-status status-blocked">已锁定</span>
+                                </td>
+                                <td>2023-10-05 11:20</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle" data-user-id="4" onclick="toggleUserStatus(4)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">下一页</a>
+                        </li>
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -732,15 +679,6 @@
                 showNotification('状态更新', `用户已禁用`);
             }
         }
-
-        // 退出登录
-        document.getElementById('logout').addEventListener('click', (e) => {
-            e.preventDefault();
-            showNotification('退出成功', '您已成功退出系统');
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        });
     </script>
 </body>
 </html>
