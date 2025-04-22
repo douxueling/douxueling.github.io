@@ -131,6 +131,26 @@
         .status-failed {
             color: #dc3545;
         }
+
+        /* 调整内容框大小并居中 */
+        .scan-config-form,
+        .scan-progress-details,
+        .scan-results-table,
+        .scan-tasks-table {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 居中样式 */
+        .d-flex {
+            display: flex !important;
+        }
+        .justify-content-center {
+            justify-content: center !important;
+        }
+        .align-items-center {
+            align-items: center !important;
+        }
     </style>
 </head>
 <body>
@@ -160,42 +180,44 @@
         <div class="content-area container">
             <div class="page active" id="scanConfig">
                 <div class="row">
-                    <div class="col-md-8 offset-md-2">
-                        <div class="card">
-                            <div class="card-header">
-                                <h4>漏洞扫描任务配置</h4>
-                            </div>
-                            <div class="card-body">
-                                <form @submit.prevent="submitScan">
-                                    <div class="mb-3">
-                                        <label for="scanTarget" class="form-label">扫描目标</label>
-                                        <input type="text" class="form-control" id="scanTarget" v-model="scanForm.target" placeholder="请输入云服务器IP地址或云服务名称" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="scanType" class="form-label">扫描类型</label>
-                                        <select class="form-select" id="scanType" v-model="scanForm.type" required>
-                                            <option value="">请选择扫描类型</option>
-                                            <option value="port">端口扫描</option>
-                                            <option value="vulnerability">漏洞扫描</option>
-                                            <option value="full">全面扫描</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">扫描时间</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="scanTime" id="immediate" value="immediate" v-model="scanForm.time" checked>
-                                            <label class="form-check-label" for="immediate">立即执行</label>
+                    <div class="col-md-10">
+                        <div class="scan-config-form">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>漏洞扫描任务配置</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form @submit.prevent="submitScan">
+                                        <div class="mb-3">
+                                            <label for="scanTarget" class="form-label">扫描目标</label>
+                                            <input type="text" class="form-control" id="scanTarget" v-model="scanForm.target" placeholder="请输入云服务器IP地址或云服务名称" required>
                                         </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="scanTime" id="schedule" value="schedule" v-model="scanForm.time">
-                                            <label class="form-check-label" for="schedule">定时任务</label>
+                                        <div class="mb-3">
+                                            <label for="scanType" class="form-label">扫描类型</label>
+                                            <select class="form-select" id="scanType" v-model="scanForm.type" required>
+                                                <option value="">请选择扫描类型</option>
+                                                <option value="port">端口扫描</option>
+                                                <option value="vulnerability">漏洞扫描</option>
+                                                <option value="full">全面扫描</option>
+                                            </select>
                                         </div>
-                                        <div v-if="scanForm.time === 'schedule'" class="mt-2">
-                                            <input type="datetime-local" class="form-control" v-model="scanForm.scheduleTime" required>
+                                        <div class="mb-3">
+                                            <label class="form-label">扫描时间</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="scanTime" id="immediate" value="immediate" v-model="scanForm.time" checked>
+                                                <label class="form-check-label" for="immediate">立即执行</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="scanTime" id="schedule" value="schedule" v-model="scanForm.time">
+                                                <label class="form-check-label" for="schedule">定时任务</label>
+                                            </div>
+                                            <div v-if="scanForm.time === 'schedule'" class="mt-2">
+                                                <input type="datetime-local" class="form-control" v-model="scanForm.scheduleTime" required>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">提交</button>
-                                </form>
+                                        <button type="submit" class="btn btn-primary">提交</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -204,52 +226,54 @@
 
             <div class="page" id="scanProgress">
                 <div class="row">
-                    <div class="col-md-8 offset-md-2">
-                        <div class="card">
-                            <div class="card-header">
-                                <h4>扫描进度</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="scan-details">
-                                    <div class="scan-details-item">
-                                        <strong>任务名称:</strong> {{ currentScan.name }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>扫描目标:</strong> {{ currentScan.target }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>扫描类型:</strong> {{ currentScan.type }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>开始时间:</strong> {{ currentScan.startTime }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>预计完成时间:</strong> {{ currentScan.estimatedEndTime }}
-                                    </div>
+                    <div class="col-md-10">
+                        <div class="scan-progress-details">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>扫描进度</h4>
                                 </div>
+                                <div class="card-body">
+                                    <div class="scan-details">
+                                        <div class="scan-details-item">
+                                            <strong>任务名称:</strong> {{ currentScan.name }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>扫描目标:</strong> {{ currentScan.target }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>扫描类型:</strong> {{ currentScan.type }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>开始时间:</strong> {{ currentScan.startTime }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>预计完成时间:</strong> {{ currentScan.estimatedEndTime }}
+                                        </div>
+                                    </div>
 
-                                <div class="progress-container">
-                                    <div class="progress">
-                                        <div class="progress-bar bg-success" role="progressbar" :style="{ width: progress + '%' }">{{ progress }}%</div>
+                                    <div class="progress-container">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" :style="{ width: progress + '%' }">{{ progress }}%</div>
+                                        </div>
+                                        <p class="text-center mt-2">扫描任务正在执行中...</p>
                                     </div>
-                                    <p class="text-center mt-2">扫描任务正在执行中...</p>
-                                </div>
 
-                                <div class="scan-details mt-4">
-                                    <div class="scan-details-item">
-                                        <strong>已扫描项目:</strong> {{ scannedItems }} / {{ totalItems }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>发现漏洞数量:</strong> {{ foundVulnerabilities }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>高危漏洞:</strong> {{ highVulnerabilities }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>中危漏洞:</strong> {{ mediumVulnerabilities }}
-                                    </div>
-                                    <div class="scan-details-item">
-                                        <strong>低危漏洞:</strong> {{ lowVulnerabilities }}
+                                    <div class="scan-details mt-4">
+                                        <div class="scan-details-item">
+                                            <strong>已扫描项目:</strong> {{ scannedItems }} / {{ totalItems }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>发现漏洞数量:</strong> {{ foundVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>高危漏洞:</strong> {{ highVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>中危漏洞:</strong> {{ mediumVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>低危漏洞:</strong> {{ lowVulnerabilities }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -260,41 +284,43 @@
 
             <div class="page" id="scanResults">
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h4>扫描结果</h4>
-                                <div class="input-group" style="width: 300px;">
-                                    <input type="text" class="form-control" v-model="searchQuery" placeholder="搜索漏洞...">
-                                    <button class="btn btn-outline-secondary" type="button">搜索</button>
+                    <div class="col-md-10">
+                        <div class="scan-results-table">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h4>扫描结果</h4>
+                                    <div class="input-group" style="width: 300px;">
+                                        <input type="text" class="form-control" v-model="searchQuery" placeholder="搜索漏洞...">
+                                        <button class="btn btn-outline-secondary" type="button">搜索</button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>漏洞名称</th>
-                                                <th>漏洞描述</th>
-                                                <th>漏洞级别</th>
-                                                <th>发现时间</th>
-                                                <th>操作</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="vulnerability in filteredVulnerabilities" :key="vulnerability.id">
-                                                <td>{{ vulnerability.name }}</td>
-                                                <td>{{ vulnerability.description }}</td>
-                                                <td :class="'severity-' + vulnerability.level">
-                                                    {{ vulnerability.level }}
-                                                </td>
-                                                <td>{{ vulnerability.time }}</td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-outline-primary" @click="viewDetails(vulnerability)">详情</button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>漏洞名称</th>
+                                                    <th>漏洞描述</th>
+                                                    <th>漏洞级别</th>
+                                                    <th>发现时间</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="vulnerability in filteredVulnerabilities" :key="vulnerability.id">
+                                                    <td>{{ vulnerability.name }}</td>
+                                                    <td>{{ vulnerability.description }}</td>
+                                                    <td :class="'severity-' + vulnerability.level">
+                                                        {{ vulnerability.level }}
+                                                    </td>
+                                                    <td>{{ vulnerability.time }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" @click="viewDetails(vulnerability)">详情</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -304,57 +330,59 @@
 
             <div class="page" id="scanTasks">
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h4>扫描任务管理</h4>
-                                <div>
-                                    <button class="btn btn-primary me-2" @click="activePage = 'scanConfig'">创建新任务</button>
-                                    <button class="btn btn-outline-secondary" @click="refreshTasks">刷新</button>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" v-model="taskSearchQuery" placeholder="搜索任务...">
-                                        <button class="btn btn-outline-secondary" type="button" @click="filterTasks">搜索</button>
+                    <div class="col-md-10">
+                        <div class="scan-tasks-table">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h4>扫描任务管理</h4>
+                                    <div>
+                                        <button class="btn btn-primary me-2" @click="activePage = 'scanConfig'">创建新任务</button>
+                                        <button class="btn btn-outline-secondary" @click="refreshTasks">刷新</button>
                                     </div>
                                 </div>
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
-                                            <tr>
-                                                <th>任务名称</th>
-                                                <th>扫描目标</th>
-                                                <th>扫描类型</th>
-                                                <th>状态</th>
-                                                <th>进度</th>
-                                                <th>操作</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr v-for="task in filteredScanTasks" :key="task.id">
-                                                <td>{{ task.name }}</td>
-                                                <td>{{ task.target }}</td>
-                                                <td>{{ task.type }}</td>
-                                                <td :class="'status-' + task.statusClass">
-                                                    {{ task.status }}
-                                                </td>
-                                                <td>
-                                                    <div class="progress">
-                                                        <div class="progress-bar bg-success" role="progressbar" :style="{ width: task.progress + '%' }">{{ task.progress }}%</div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <button class="btn btn-sm btn-outline-primary me-1" @click="viewTaskDetails(task)">详情</button>
-                                                    <button class="btn btn-sm btn-outline-secondary me-1" @click="pauseTask(task.id)" v-if="task.status === '进行中'">暂停</button>
-                                                    <button class="btn btn-sm btn-outline-success me-1" @click="resumeTask(task.id)" v-if="task.status === '已暂停'">继续</button>
-                                                    <button class="btn btn-sm btn-outline-info me-1" @click="restartTask(task.id)" v-if="task.status === '已完成' || task.status === '已暂停'">重新扫描</button>
-                                                    <button class="btn btn-sm btn-outline-danger" @click="deleteTask(task.id)">删除</button>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" v-model="taskSearchQuery" placeholder="搜索任务...">
+                                            <button class="btn btn-outline-secondary" type="button" @click="filterTasks">搜索</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>任务名称</th>
+                                                    <th>扫描目标</th>
+                                                    <th>扫描类型</th>
+                                                    <th>状态</th>
+                                                    <th>进度</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="task in filteredScanTasks" :key="task.id">
+                                                    <td>{{ task.name }}</td>
+                                                    <td>{{ task.target }}</td>
+                                                    <td>{{ task.type }}</td>
+                                                    <td :class="'status-' + task.statusClass">
+                                                        {{ task.status }}
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress">
+                                                            <div class="progress-bar bg-success" role="progressbar" :style="{ width: task.progress + '%' }">{{ task.progress }}%</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1" @click="viewTaskDetails(task)">详情</button>
+                                                        <button class="btn btn-sm btn-outline-secondary me-1" @click="pauseTask(task.id)" v-if="task.status === '进行中'">暂停</button>
+                                                        <button class="btn btn-sm btn-outline-success me-1" @click="resumeTask(task.id)" v-if="task.status === '已暂停'">继续</button>
+                                                        <button class="btn btn-sm btn-outline-info me-1" @click="restartTask(task.id)" v-if="task.status === '已完成' || task.status === '已暂停'">重新扫描</button>
+                                                        <button class="btn btn-sm btn-outline-danger" @click="deleteTask(task.id)">删除</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -532,7 +560,8 @@
                     estimatedEndTime: ''
                 },
                 scanTasks: [],
-                progressInterval: null
+                progressInterval: null,
+                timer: null
             },
             computed: {
                 filteredVulnerabilities() {
@@ -768,12 +797,75 @@
                     } else {
                         console.log('未从 localStorage 加载到漏洞数据');
                     }
+                },
+                // 模拟API获取实时漏洞数据
+                fetchRealTimeVulnerabilities() {
+                    console.log('模拟从后端API获取实时漏洞数据...');
+                    
+                    // 定义一些常见的漏洞名称和描述
+                    const vulnerabilityNames = [
+                        '敏感信息泄露',
+                        '跨站脚本攻击（XSS）',
+                        'SQL注入',
+                        '命令注入',
+                        '文件包含漏洞',
+                        '未授权访问',
+                        '跨站请求伪造（CSRF）',
+                        '路径遍历漏洞',
+                        '不安全的反序列化'
+                    ];
+                    
+                    const vulnerabilityDescriptions = [
+                        '应用程序泄露敏感信息，可能导致攻击者获取系统细节。',
+                        '存在跨站脚本攻击风险，可能导致用户会话劫持。',
+                        '应用程序存在SQL注入风险，可能导致数据泄露或篡改。',
+                        '存在命令注入风险，可能导致系统命令执行。',
+                        '文件包含功能存在漏洞，可能导致任意文件包含。',
+                        '未授权访问控制漏洞，可能导致数据泄露。',
+                        '存在跨站请求伪造风险，可能导致用户在不知情的情况下执行操作。',
+                        '路径遍历漏洞，可能导致访问受限目录。',
+                        '不安全的反序列化，可能导致远程代码执行。'
+                    ];
+                    
+                    // 随机选择一个漏洞名称和描述
+                    const randomIndex = Math.floor(Math.random() * vulnerabilityNames.length);
+                    const apiData = [
+                        { 
+                            id: Date.now(), 
+                            name: vulnerabilityNames[randomIndex], 
+                            description: vulnerabilityDescriptions[randomIndex], 
+                            level: 'high', 
+                            time: new Date().toLocaleString() 
+                        }
+                    ];
+                    
+                    // 合并新旧漏洞数据
+                    this.vulnerabilities = [...this.vulnerabilities, ...apiData];
+                    
+                    // 存储到localStorage
+                    localStorage.setItem('vulnerabilityData', JSON.stringify(this.vulnerabilities));
+                    console.log('实时扫描结果已存储到 localStorage:', JSON.parse(localStorage.getItem('vulnerabilityData')));
+                    
+                    // 提示用户有新的漏洞检测结果
+                    alert('实时漏洞扫描完成，发现新漏洞！');
                 }
             },
             created() {
                 this.loadFromLocalStorage();
                 if (this.progressInterval) {
                     clearInterval(this.progressInterval);
+                }
+            },
+            mounted() {
+                // 页面加载时立即执行一次扫描
+                this.fetchRealTimeVulnerabilities();
+                // 设置定时器，每30秒执行一次扫描
+                this.timer = setInterval(this.fetchRealTimeVulnerabilities, 30000); // 30秒间隔
+            },
+            beforeDestroy() {
+                // 在Vue实例销毁前清除定时器
+                if (this.timer) {
+                    clearInterval(this.timer);
                 }
             },
             watch: {
@@ -786,7 +878,5 @@
             }
         });
     </script>
-    <hr>
-    <a href="index.html" align="center">返回</a>
 </body>
 </html>

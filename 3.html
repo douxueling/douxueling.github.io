@@ -22,7 +22,7 @@
             animation: gradient 20s ease infinite;
             height: 100vh;
             overflow-x: hidden;
-            position: relative; /* 为粒子背景定位 */
+            position: relative;
         }
         @keyframes gradient {
             0% { background-position: 0% 50%; }
@@ -37,7 +37,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1; /* 确保粒子背景在最底层 */
+            z-index: -1;
         }
 
         /* 侧边栏样式 */
@@ -217,7 +217,7 @@
         <header class="dashboard-header">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3>实时监控与告警系统</h3>
+                    <h3>实时监控告警</h3>
                     <p>系统状态: <span class="text-success active" title="">正常运行</span></p>
                 </div>
                 <div class="d-flex align-items-center">
@@ -403,7 +403,8 @@
                     severity: '中风险'
                 }
             ],
-            history: []
+            history: [],
+            allAlerts: []
         };
 
         // 页面切换功能
@@ -460,6 +461,21 @@
                 severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
                           row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
             }));
+            
+            // 获取所有历史记录（包括隐藏的）
+            const allHistoryRows = Array.from(historyTableBody.rows).concat(Array.from(hiddenHistoryTableBody.rows));
+            window.alertData.history = allHistoryRows.map(row => ({
+                time: row.cells[0].textContent,
+                type: row.cells[1].textContent,
+                description: row.cells[2].textContent,
+                asset: row.cells[3].textContent,
+                status: row.cells[4].textContent,
+                severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                          row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+            }));
+            
+            // 合并所有数据
+            window.alertData.allAlerts = [...window.alertData.alerts, ...window.alertData.history];
             
             // 将数据存储到localStorage
             localStorage.setItem('alertData', JSON.stringify(window.alertData));
@@ -861,6 +877,21 @@
                               row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
                 }));
                 
+                // 获取所有历史记录（包括隐藏的）
+                const allHistoryRows = Array.from(document.getElementById('historyTableBody').rows).concat(Array.from(document.getElementById('hiddenHistoryTableBody').rows));
+                window.alertData.history = allHistoryRows.map(row => ({
+                    time: row.cells[0].textContent,
+                    type: row.cells[1].textContent,
+                    description: row.cells[2].textContent,
+                    asset: row.cells[3].textContent,
+                    status: row.cells[4].textContent,
+                    severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                              row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+                }));
+                
+                // 合并所有数据
+                window.alertData.allAlerts = [...window.alertData.alerts, ...window.alertData.history];
+                
                 // 将数据存储到localStorage
                 localStorage.setItem('alertData', JSON.stringify(window.alertData));
             });
@@ -1078,7 +1109,5 @@
             simulateRealTimeUpdates();
         });
     </script>
-    <hr>
-    <a href="index.html" align="center">返回</a>
 </body>
 </html>
