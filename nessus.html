@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>漏洞扫描识别</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .progress-container {
+            margin: 20px 0;
+        }
+        .severity-high {
+            color: #dc3545;
+        }
+        .severity-medium {
+            color: #ffc107;
+        }
+        .severity-low {
+            color: #28a745;
+        }
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        .scan-details {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .scan-details-item {
+            margin-bottom: 10px;
+        }
+        .task-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .task-table th, .task-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .task-table th {
+            background-color: #f8f9fa;
+        }
+        .task-table tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1; 
+            background-color: #1a2a6c;
+            background-image: linear-gradient(135deg, #1a2a6c, #f1f2f4);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100%;
+            background-color: #2c3e50;
+            color: white;
+            z-index: 1000;
+            padding-top: 20px;
+        }
+        .sidebar-header {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-menu li {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .sidebar-menu li:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .sidebar-menu li.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+        .content-area {
+            margin-left: 250px;
+        }
+
+        .status-in-progress {
+            color: #28a745;
+        }
+        .status-completed {
+            color: #17a2b8;
+        }
+        .status-pending {
+            color: #007bff;
+        }
+        .status-failed {
+            color: #dc3545;
+        }
+
+        /* 调整内容框大小并居中 */
+        .scan-config-form,
+        .scan-progress-details,
+        .scan-results-table,
+        .scan-tasks-table {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 居中样式 */
+        .d-flex {
+            display: flex !important;
+        }
+        .justify-content-center {
+            justify-content: center !important;
+        }
+        .align-items-center {
+            align-items: center !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    <div id="app">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h4>漏洞扫描识别</h4>
+            </div>
+            <ul class="sidebar-menu">
+                <li @click="activePage = 'scanConfig'" :class="{ active: activePage === 'scanConfig' }">
+                    扫描任务配置
+                </li>
+                <li @click="activePage = 'scanProgress'" :class="{ active: activePage === 'scanProgress' }">
+                    扫描进度
+                </li>
+                <li @click="activePage = 'scanResults'" :class="{ active: activePage === 'scanResults' }">
+                    扫描结果
+                </li>
+                <li @click="activePage = 'scanTasks'" :class="{ active: activePage === 'scanTasks' }">
+                    扫描任务管理
+                </li>
+            </ul>
+        </div>
+
+        <div class="content-area container">
+            <div class="page active" id="scanConfig">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="scan-config-form">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>漏洞扫描任务配置</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form @submit.prevent="submitScan">
+                                        <div class="mb-3">
+                                            <label for="scanTarget" class="form-label">扫描目标</label>
+                                            <input type="text" class="form-control" id="scanTarget" v-model="scanForm.target" placeholder="请输入云服务器IP地址或云服务名称" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="scanType" class="form-label">扫描类型</label>
+                                            <select class="form-select" id="scanType" v-model="scanForm.type" required>
+                                                <option value="">请选择扫描类型</option>
+                                                <option value="port">端口扫描</option>
+                                                <option value="vulnerability">漏洞扫描</option>
+                                                <option value="full">全面扫描</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">扫描时间</label>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="scanTime" id="immediate" value="immediate" v-model="scanForm.time" checked>
+                                                <label class="form-check-label" for="immediate">立即执行</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="scanTime" id="schedule" value="schedule" v-model="scanForm.time">
+                                                <label class="form-check-label" for="schedule">定时任务</label>
+                                            </div>
+                                            <div v-if="scanForm.time === 'schedule'" class="mt-2">
+                                                <input type="datetime-local" class="form-control" v-model="scanForm.scheduleTime" required>
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">提交</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="scanProgress">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="scan-progress-details">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>扫描进度</h4>
+                                </div>
+                                <div class="card-body">
+                                    <div class="scan-details">
+                                        <div class="scan-details-item">
+                                            <strong>任务名称:</strong> {{ currentScan.name }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>扫描目标:</strong> {{ currentScan.target }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>扫描类型:</strong> {{ currentScan.type }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>开始时间:</strong> {{ currentScan.startTime }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>预计完成时间:</strong> {{ currentScan.estimatedEndTime }}
+                                        </div>
+                                    </div>
+
+                                    <div class="progress-container">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" :style="{ width: progress + '%' }">{{ progress }}%</div>
+                                        </div>
+                                        <p class="text-center mt-2">扫描任务正在执行中...</p>
+                                    </div>
+
+                                    <div class="scan-details mt-4">
+                                        <div class="scan-details-item">
+                                            <strong>已扫描项目:</strong> {{ scannedItems }} / {{ totalItems }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>发现漏洞数量:</strong> {{ foundVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>高危漏洞:</strong> {{ highVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>中危漏洞:</strong> {{ mediumVulnerabilities }}
+                                        </div>
+                                        <div class="scan-details-item">
+                                            <strong>低危漏洞:</strong> {{ lowVulnerabilities }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="scanResults">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="scan-results-table">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h4>扫描结果</h4>
+                                    <div class="input-group" style="width: 300px;">
+                                        <input type="text" class="form-control" v-model="searchQuery" placeholder="搜索漏洞...">
+                                        <button class="btn btn-outline-secondary" type="button">搜索</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>漏洞名称</th>
+                                                    <th>漏洞描述</th>
+                                                    <th>漏洞级别</th>
+                                                    <th>发现时间</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="vulnerability in filteredVulnerabilities" :key="vulnerability.id">
+                                                    <td>{{ vulnerability.name }}</td>
+                                                    <td>{{ vulnerability.description }}</td>
+                                                    <td :class="'severity-' + vulnerability.level">
+                                                        {{ vulnerability.level }}
+                                                    </td>
+                                                    <td>{{ vulnerability.time }}</td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary" @click="viewDetails(vulnerability)">详情</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="page" id="scanTasks">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="scan-tasks-table">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h4>扫描任务管理</h4>
+                                    <div>
+                                        <button class="btn btn-primary me-2" @click="activePage = 'scanConfig'">创建新任务</button>
+                                        <button class="btn btn-outline-secondary" @click="refreshTasks">刷新</button>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" v-model="taskSearchQuery" placeholder="搜索任务...">
+                                            <button class="btn btn-outline-secondary" type="button" @click="filterTasks">搜索</button>
+                                        </div>
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>任务名称</th>
+                                                    <th>扫描目标</th>
+                                                    <th>扫描类型</th>
+                                                    <th>状态</th>
+                                                    <th>进度</th>
+                                                    <th>操作</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="task in filteredScanTasks" :key="task.id">
+                                                    <td>{{ task.name }}</td>
+                                                    <td>{{ task.target }}</td>
+                                                    <td>{{ task.type }}</td>
+                                                    <td :class="'status-' + task.statusClass">
+                                                        {{ task.status }}
+                                                    </td>
+                                                    <td>
+                                                        <div class="progress">
+                                                            <div class="progress-bar bg-success" role="progressbar" :style="{ width: task.progress + '%' }">{{ task.progress }}%</div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn btn-sm btn-outline-primary me-1" @click="viewTaskDetails(task)">详情</button>
+                                                        <button class="btn btn-sm btn-outline-secondary me-1" @click="pauseTask(task.id)" v-if="task.status === '进行中'">暂停</button>
+                                                        <button class="btn btn-sm btn-outline-success me-1" @click="resumeTask(task.id)" v-if="task.status === '已暂停'">继续</button>
+                                                        <button class="btn btn-sm btn-outline-info me-1" @click="restartTask(task.id)" v-if="task.status === '已完成' || task.status === '已暂停'">重新扫描</button>
+                                                        <button class="btn btn-sm btn-outline-danger" @click="deleteTask(task.id)">删除</button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="vulnerabilityModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">漏洞详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">任务详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="taskDetailsBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 80,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    },
+                    "polygon": {
+                        "nb_sides": 5
+                    }
+                },
+                "opacity": {
+                    "value": 0.5,
+                    "random": false,
+                    "anim": {
+                        "enable": false,
+                        "speed": 1,
+                        "opacity_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "size": {
+                    "value": 3,
+                    "random": true,
+                    "anim": {
+                        "enable": false,
+                        "speed": 40,
+                        "size_min": 0.1,
+                        "sync": false
+                    }
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#ffffff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 2,
+                    "direction": "none",
+                    "random": false,
+                    "straight": false,
+                    "out_mode": "out",
+                    "bounce": false,
+                    "attract": {
+                        "enable": false,
+                        "rotateX": 600,
+                        "rotateY": 1200
+                    }
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "grab"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 140,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "bubble": {
+                        "distance": 400,
+                        "size": 40,
+                        "duration": 2,
+                        "opacity": 8,
+                        "speed": 3
+                    },
+                    "repulse": {
+                        "distance": 200,
+                        "duration": 0.4
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    },
+                    "remove": {
+                        "particles_nb": 2
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+
+        new Vue({
+            el: '#app',
+            data: {
+                activePage: 'scanConfig',
+                scanForm: {
+                    target: '',
+                    type: '',
+                    time: 'immediate',
+                    scheduleTime: ''
+                },
+                progress: 0,
+                scannedItems: 0,
+                totalItems: 100,
+                foundVulnerabilities: 0,
+                highVulnerabilities: 0,
+                mediumVulnerabilities: 0,
+                lowVulnerabilities: 0,
+                searchQuery: '',
+                taskSearchQuery: '',
+                vulnerabilities: [],
+                currentScan: {
+                    name: '',
+                    target: '',
+                    type: '',
+                    startTime: '',
+                    estimatedEndTime: ''
+                },
+                scanTasks: [],
+                progressInterval: null,
+                timer: null
+            },
+            computed: {
+                filteredVulnerabilities() {
+                    if (!this.searchQuery) {
+                        return this.vulnerabilities;
+                    }
+                    return this.vulnerabilities.filter(vuln => 
+                        vuln.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                        vuln.description.toLowerCase().includes(this.searchQuery.toLowerCase())
+                    );
+                },
+                filteredScanTasks() {
+                    if (!this.taskSearchQuery) {
+                        return this.scanTasks;
+                    }
+                    return this.scanTasks.filter(task => 
+                        task.name.toLowerCase().includes(this.taskSearchQuery.toLowerCase()) ||
+                        task.target.toLowerCase().includes(this.taskSearchQuery.toLowerCase()) ||
+                        task.type.toLowerCase().includes(this.taskSearchQuery.toLowerCase())
+                    );
+                }
+            },
+            methods: {
+                submitScan() {
+                    if (!this.scanForm.target || !this.scanForm.type) {
+                        alert('请填写扫描目标和扫描类型');
+                        return;
+                    }
+
+                    if (this.scanForm.time === 'schedule' && !this.scanForm.scheduleTime) {
+                        alert('请选择定时任务时间');
+                        return;
+                    }
+
+                    localStorage.setItem('vulnerabilityData', JSON.stringify(this.vulnerabilities));
+                    console.log('漏洞数据已存储到 localStorage:', JSON.parse(localStorage.getItem('vulnerabilityData')));
+                    console.log('提交扫描任务:', this.scanForm);
+                    alert('扫描任务已提交');
+
+                    const newTask = {
+                        id: this.scanTasks.length + 1,
+                        name: this.scanForm.target,
+                        target: this.scanForm.target,
+                        type: this.scanForm.type === 'port' ? '端口扫描' : 
+                              this.scanForm.type === 'vulnerability' ? '漏洞扫描' : '全面扫描',
+                        status: this.scanForm.time === 'immediate' ? '进行中' : '等待',
+                        statusClass: this.scanForm.time === 'immediate' ? 'in-progress' : 'pending',
+                        progress: this.scanForm.time === 'immediate' ? 0 : 0,
+                        startTime: this.scanForm.time === 'immediate' ? new Date().toLocaleString() : null,
+                        scheduledTime: this.scanForm.time === 'schedule' ? this.scanForm.scheduleTime : null
+                    };
+
+                    this.scanTasks.push(newTask);
+
+                    this.currentScan.name = newTask.name;
+                    this.currentScan.target = newTask.target;
+                    this.currentScan.type = newTask.type;
+                    this.currentScan.startTime = newTask.startTime;
+                    this.currentScan.estimatedEndTime = new Date(Date.now() + 300000).toLocaleString(); // 5分钟后
+
+                    this.progress = 0;
+                    this.scannedItems = 0;
+                    this.foundVulnerabilities = 0;
+                    this.highVulnerabilities = 0;
+                    this.mediumVulnerabilities = 0;
+                    this.lowVulnerabilities = 0;
+
+                    this.activePage = 'scanProgress';
+
+                    this.startProgressSimulation();
+
+                    // 跳转到扫描结果页面
+                    setTimeout(() => {
+                        this.activePage = 'scanResults';
+                    }, 3000);
+                },
+                startProgressSimulation() {
+                    if (this.progressInterval) {
+                        clearInterval(this.progressInterval);
+                    }
+
+                    this.progressInterval = setInterval(() => {
+                        this.progress += 10;
+                        this.scannedItems = Math.floor((this.progress / 100) * this.totalItems);
+
+                        if (this.progress >= 100) {
+                            clearInterval(this.progressInterval);
+                            this.progress = 100;
+                            this.scannedItems = this.totalItems;
+
+                            this.foundVulnerabilities = 8;
+                            this.highVulnerabilities = 3;
+                            this.mediumVulnerabilities = 3;
+                            this.lowVulnerabilities = 2;
+
+                            this.updateVulnerabilities();
+                        } else {
+                            if (Math.random() > 0.7) {
+                                this.foundVulnerabilities += 1;
+                                if (Math.random() > 0.5) {
+                                    this.highVulnerabilities += 1;
+                                } else if (Math.random() > 0.3) {
+                                    this.mediumVulnerabilities += 1;
+                                } else {
+                                    this.lowVulnerabilities += 1;
+                                }
+                            }
+                        }
+                    }, 1000);
+                },
+                updateVulnerabilities() {
+                    const newVulnerabilities = [
+                        { id: 4, name: 'Web服务器配置漏洞', description: 'Web服务器配置存在安全风险，可能导致信息泄露', level: 'high', time: new Date().toLocaleString() },
+                        { id: 5, name: '数据库权限问题', description: '数据库用户权限设置不当，可能导致数据泄露', level: 'high', time: new Date().toLocaleString() },
+                        { id: 6, name: '应用层注入风险', description: '应用程序存在SQL注入风险，可能导致数据被篡改', level: 'high', time: new Date().toLocaleString() },
+                        { id: 7, name: '中间件版本过旧', description: '中间件版本过旧，存在已知漏洞', level: 'medium', time: new Date().toLocaleString() },
+                        { id: 8, name: '文件上传漏洞', description: '存在不安全的文件上传接口，可能导致任意文件上传', level: 'medium', time: new Date().toLocaleString() },
+                        { id: 9, name: '信息泄露', description: '应用程序泄露敏感信息，可能导致攻击者获取系统细节', level: 'medium', time: new Date().toLocaleString() },
+                        { id: 10, name: '缺少安全头', description: 'HTTP响应缺少安全头，可能导致点击劫持攻击', level: 'low', time: new Date().toLocaleString() },
+                        { id: 11, name: '弱密码', description: '检测到使用弱密码，建议修改为强密码', level: 'low', time: new Date().toLocaleString() }
+                    ];
+
+                    this.vulnerabilities = newVulnerabilities;
+                    localStorage.setItem('vulnerabilityData', JSON.stringify(this.vulnerabilities));
+                    console.log('更新后的漏洞数据已存储到 localStorage:', JSON.parse(localStorage.getItem('vulnerabilityData')));
+                },
+                viewDetails(vulnerability) {
+                    const modalTitle = document.getElementById('modalTitle');
+                    const modalBody = document.getElementById('modalBody');
+                    
+                    modalTitle.textContent = vulnerability.name;
+                    modalBody.innerHTML = `
+                        <p><strong>漏洞描述:</strong> ${vulnerability.description}</p>
+                        <p><strong>漏洞级别:</strong> ${vulnerability.level}</p>
+                        <p><strong>发现时间:</strong> ${vulnerability.time}</p>
+                        <p><strong>建议修复措施:</strong> 请参考安全文档进行配置调整或代码修复。</p>
+                    `;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('vulnerabilityModal'));
+                    modal.show();
+                },
+                viewTaskDetails(task) {
+                    const taskDetailsBody = document.getElementById('taskDetailsBody');
+                    
+                    let statusDisplay = task.status;
+                    if (task.status === '进行中' && task.startTime) {
+                        statusDisplay += ` (开始于: ${task.startTime})`;
+                    } else if (task.status === '已完成' && task.endTime) {
+                        statusDisplay += ` (完成于: ${task.endTime})`;
+                    } else if (task.status === '等待' && task.scheduledTime) {
+                        statusDisplay += ` (计划于: ${task.scheduledTime})`;
+                    } else if (task.status === '已暂停' && task.pausedTime) {
+                        statusDisplay += ` (暂停于: ${task.pausedTime})`;
+                    }
+                    
+                    taskDetailsBody.innerHTML = `
+                        <h5>${task.name}</h5>
+                        <table class="table table-borderless">
+                            <tbody>
+                                <tr>
+                                    <th>扫描目标</th>
+                                    <td>${task.target}</td>
+                                </tr>
+                                <tr>
+                                    <th>扫描类型</th>
+                                    <td>${task.type}</td>
+                                </tr>
+                                <tr>
+                                    <th>状态</th>
+                                    <td>${statusDisplay}</td>
+                                </tr>
+                                <tr>
+                                    <th>进度</th>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: ${task.progress}%"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    const modal = new bootstrap.Modal(document.getElementById('taskDetailsModal'));
+                    modal.show();
+                },
+                deleteTask(taskId) {
+                    if (confirm('确定要删除这个扫描任务吗？')) {
+                        this.scanTasks = this.scanTasks.filter(task => task.id !== taskId);
+                        alert('任务已删除');
+                    }
+                },
+                pauseTask(taskId) {
+                    const task = this.scanTasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.status = '已暂停';
+                        task.statusClass = 'paused';
+                        task.pausedTime = new Date().toLocaleString();
+                        alert(`任务 ${task.name} 已暂停`);
+                    }
+                },
+                resumeTask(taskId) {
+                    const task = this.scanTasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.status = '进行中';
+                        task.statusClass = 'in-progress';
+                        task.continueTime = new Date().toLocaleString();
+                        alert(`任务 ${task.name} 已继续`);
+                    }
+                },
+                restartTask(taskId) {
+                    const task = this.scanTasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.status = '进行中';
+                        task.statusClass = 'in-progress';
+                        task.progress = 0;
+                        task.startTime = new Date().toLocaleString();
+                        task.estimatedEndTime = new Date(Date.now() + 300000).toLocaleString(); // 5分钟后
+                        alert(`任务 ${task.name} 已重新开始`);
+                    }
+                },
+                refreshTasks() {
+                    alert('任务列表已刷新');
+                },
+                filterTasks() {
+                    alert('任务筛选已应用');
+                },
+                loadFromLocalStorage() {
+                    const storedVulnerabilities = localStorage.getItem('vulnerabilityData');
+                    if (storedVulnerabilities) {
+                        this.vulnerabilities = JSON.parse(storedVulnerabilities);
+                        console.log('从 localStorage 加载漏洞数据成功:', this.vulnerabilities);
+                    } else {
+                        console.log('未从 localStorage 加载到漏洞数据');
+                    }
+                },
+                // 模拟API获取实时漏洞数据
+                fetchRealTimeVulnerabilities() {
+                    console.log('模拟从后端API获取实时漏洞数据...');
+                    
+                    // 定义一些常见的漏洞名称和描述
+                    const vulnerabilityNames = [
+                        '敏感信息泄露',
+                        '跨站脚本攻击（XSS）',
+                        'SQL注入',
+                        '命令注入',
+                        '文件包含漏洞',
+                        '未授权访问',
+                        '跨站请求伪造（CSRF）',
+                        '路径遍历漏洞',
+                        '不安全的反序列化'
+                    ];
+                    
+                    const vulnerabilityDescriptions = [
+                        '应用程序泄露敏感信息，可能导致攻击者获取系统细节。',
+                        '存在跨站脚本攻击风险，可能导致用户会话劫持。',
+                        '应用程序存在SQL注入风险，可能导致数据泄露或篡改。',
+                        '存在命令注入风险，可能导致系统命令执行。',
+                        '文件包含功能存在漏洞，可能导致任意文件包含。',
+                        '未授权访问控制漏洞，可能导致数据泄露。',
+                        '存在跨站请求伪造风险，可能导致用户在不知情的情况下执行操作。',
+                        '路径遍历漏洞，可能导致访问受限目录。',
+                        '不安全的反序列化，可能导致远程代码执行。'
+                    ];
+                    
+                    // 随机选择一个漏洞名称和描述
+                    const randomIndex = Math.floor(Math.random() * vulnerabilityNames.length);
+                    const apiData = [
+                        { 
+                            id: Date.now(), 
+                            name: vulnerabilityNames[randomIndex], 
+                            description: vulnerabilityDescriptions[randomIndex], 
+                            level: 'high', 
+                            time: new Date().toLocaleString() 
+                        }
+                    ];
+                    
+                    // 合并新旧漏洞数据
+                    this.vulnerabilities = [...this.vulnerabilities, ...apiData];
+                    
+                    // 存储到localStorage
+                    localStorage.setItem('vulnerabilityData', JSON.stringify(this.vulnerabilities));
+                    console.log('实时扫描结果已存储到 localStorage:', JSON.parse(localStorage.getItem('vulnerabilityData')));
+                    
+                    // 提示用户有新的漏洞检测结果
+                    alert('实时漏洞扫描完成，发现新漏洞！');
+                }
+            },
+            created() {
+                this.loadFromLocalStorage();
+                if (this.progressInterval) {
+                    clearInterval(this.progressInterval);
+                }
+            },
+            mounted() {
+                // 页面加载时立即执行一次扫描
+                this.fetchRealTimeVulnerabilities();
+                // 设置定时器，每30秒执行一次扫描
+                this.timer = setInterval(this.fetchRealTimeVulnerabilities, 30000); // 30秒间隔
+            },
+            beforeDestroy() {
+                // 在Vue实例销毁前清除定时器
+                if (this.timer) {
+                    clearInterval(this.timer);
+                }
+            },
+            watch: {
+                activePage(newPage) {
+                    document.querySelectorAll('.page').forEach(page => {
+                        page.classList.remove('active');
+                    });
+                    document.getElementById(newPage).classList.add('active');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

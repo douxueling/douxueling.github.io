@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - CVMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #f1f2f4);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            height: 100vh;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 主内容区样式 */
+        .content {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+        }
+
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 600;
+            color: #3a506b;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            color: #3a506b;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .user-status {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-blocked {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .user-action-btn {
+            padding: 4px 8px;
+            margin: 0 2px;
+        }
+
+        .switch-toggle {
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+            background-color: #ccc;
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .switch-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: white;
+            top: 2px;
+            left: 2px;
+            transition: 0.3s;
+        }
+
+        .switch-toggle.active {
+            background-color: #28a745;
+        }
+
+        .switch-toggle.active::after {
+            left: 22px;
+        }
+
+        /* 表单样式 */
+        .form-control:focus {
+            border-color: #3a506b;
+            box-shadow: 0 0 0 3px rgba(58, 80, 107, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #3a506b;
+            border-color: #3a506b;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background-color: #2c3e50;
+            border-color: #2c3e50;
+        }
+
+        /* 密码显示/隐藏 */
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            cursor: pointer;
+            color: #747b8c;
+        }
+
+        /* 密码强度检测 */
+        .strength-meter {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+            background-color: #e9ecef;
+        }
+
+        .strength-meter-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.3s, background-color 0.3s;
+        }
+
+        .strength-text {
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .password-match {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Toast 容器 */
+        .toast-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- 主内容区 -->
+    <hr>
+    <a href="index.html" ><h align="center">返回</h></a>
+    <div class="content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">用户管理</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="bi bi-plus-circle me-1"></i> 添加用户
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="搜索用户...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-end">
+                                <select class="form-select me-2" style="width: 150px;">
+                                    <option selected>所有状态</option>
+                                    <option>活跃</option>
+                                    <option>禁用</option>
+                                    <option>已锁定</option>
+                                </select>
+                                <select class="form-select" style="width: 150px;">
+                                    <option selected>所有角色</option>
+                                    <option>管理员</option>
+                                    <option>审计员</option>
+                                    <option>普通用户</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th scope="col">用户头像</th>
+                                <th scope="col">用户名</th>
+                                <th scope="col">邮箱</th>
+                                <th scope="col">角色</th>
+                                <th scope="col">状态</th>
+                                <th scope="col">最后登录</th>
+                                <th scope="col">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>admin</td>
+                                <td>admin@example.com</td>
+                                <td>管理员</td>
+                                <td>
+                                    <span class="user-status status-active">活跃</span>
+                                </td>
+                                <td>2023-10-15 14:30</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle active" data-user-id="1" onclick="toggleUserStatus(1)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>auditor</td>
+                                <td>auditor@example.com</td>
+                                <td>审计员</td>
+                                <td>
+                                    <span class="user-status status-active">活跃</span>
+                                </td>
+                                <td>2023-10-14 09:15</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle active" data-user-id="2" onclick="toggleUserStatus(2)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>user1</td>
+                                <td>user1@example.com</td>
+                                <td>普通用户</td>
+                                <td>
+                                    <span class="user-status status-inactive">禁用</span>
+                                </td>
+                                <td>2023-10-10 16:45</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle" data-user-id="3" onclick="toggleUserStatus(3)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <img src="2.jpg" alt="User Avatar" class="user-avatar">
+                                </td>
+                                <td>user2</td>
+                                <td>user2@example.com</td>
+                                <td>普通用户</td>
+                                <td>
+                                    <span class="user-status status-blocked">已锁定</span>
+                                </td>
+                                <td>2023-10-05 11:20</td>
+                                <td>
+                                    <div class="d-flex">
+                                        <button class="btn btn-sm btn-outline-secondary user-action-btn" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger user-action-btn">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <label class="switch-toggle" data-user-id="4" onclick="toggleUserStatus(4)">
+                                            <input type="checkbox" style="display: none;">
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">上一页</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">下一页</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加用户模态框 -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加新用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="newUsername" placeholder="请设置用户名" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newEmail" class="form-label">电子邮箱</label>
+                            <input type="email" class="form-control" id="newEmail" placeholder="请输入电子邮箱" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newPassword" placeholder="请设置密码" required>
+                                <span class="input-group-text password-toggle" id="newPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                            <div class="strength-meter">
+                                <div class="strength-meter-fill" id="newStrengthMeterFill" style="width: 0%; background-color: #e74c3c;"></div>
+                            </div>
+                            <div class="strength-text text-muted" id="newStrengthText">密码强度: 弱</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newConfirmPassword" class="form-label">确认密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newConfirmPassword" placeholder="请再次输入密码" required>
+                                <span class="input-group-text password-toggle" id="newConfirmPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                            <div class="password-match text-danger" id="newPasswordMatch">密码不匹配</div>
+                            <div class="password-match text-success" id="newPasswordMatchSuccess">密码匹配</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserRole" class="form-label">用户角色</label>
+                            <select class="form-select" id="newUserRole" required>
+                                <option value="">请选择角色</option>
+                                <option value="admin">管理员</option>
+                                <option value="auditor">审计员</option>
+                                <option value="user">普通用户</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserStatus" class="form-label">用户状态</label>
+                            <select class="form-select" id="newUserStatus" required>
+                                <option value="active">活跃</option>
+                                <option value="inactive">禁用</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUserAvatar" class="form-label">用户头像</label>
+                            <input type="file" class="form-control" id="newUserAvatar" accept="image/*">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="sendWelcomeEmail" checked>
+                            <label class="form-check-label" for="sendWelcomeEmail">发送欢迎邮件</label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">添加用户</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑用户模态框 -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑用户</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId" value="1">
+                        <div class="mb-3">
+                            <label for="editUsername" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="editUsername" placeholder="请设置用户名" value="admin" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label">电子邮箱</label>
+                            <input type="email" class="form-control" id="editEmail" placeholder="请输入电子邮箱" value="admin@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editPassword" class="form-label">密码 (留空则不修改)</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="editPassword" placeholder="请设置密码">
+                                <span class="input-group-text password-toggle" id="editPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                            <div class="strength-meter">
+                                <div class="strength-meter-fill" id="editStrengthMeterFill" style="width: 0%; background-color: #e74c3c;"></div>
+                            </div>
+                            <div class="strength-text text-muted" id="editStrengthText">密码强度: 弱</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editConfirmPassword" class="form-label">确认密码</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="editConfirmPassword" placeholder="请再次输入密码">
+                                <span class="input-group-text password-toggle" id="editConfirmPasswordToggle">
+                                    <i class="bi bi-eye-slash"></i>
+                                </span>
+                            </div>
+                            <div class="password-match text-danger" id="editPasswordMatch">密码不匹配</div>
+                            <div class="password-match text-success" id="editPasswordMatchSuccess">密码匹配</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserRole" class="form-label">用户角色</label>
+                            <select class="form-select" id="editUserRole" required>
+                                <option value="admin" selected>管理员</option>
+                                <option value="auditor">审计员</option>
+                                <option value="user">普通用户</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserStatus" class="form-label">用户状态</label>
+                            <select class="form-select" id="editUserStatus" required>
+                                <option value="active" selected>活跃</option>
+                                <option value="inactive">禁用</option>
+                                <option value="blocked">已锁定</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUserAvatar" class="form-label">用户头像</label>
+                            <input type="file" class="form-control" id="editUserAvatar" accept="image/*">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">当前头像</label>
+                            <img src="2.jpg" alt="Current Avatar" class="img-fluid" style="max-width: 100px; max-height: 100px;">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">保存修改</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                <strong class="me-auto" id="toastTitle">提示</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                这是一个提示信息。
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 显示通知
+        function showNotification(title, message) {
+            const toast = new bootstrap.Toast(document.getElementById('toast'));
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            toast.show();
+        }
+
+        // 密码显示/隐藏
+        function setupPasswordToggle(inputId, toggleId) {
+            const input = document.getElementById(inputId);
+            const toggle = document.getElementById(toggleId);
+            
+            toggle.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    toggle.innerHTML = '<i class="bi bi-eye"></i>';
+                } else {
+                    input.type = 'password';
+                    toggle.innerHTML = '<i class="bi bi-eye-slash"></i>';
+                }
+            });
+        }
+
+        setupPasswordToggle('newPassword', 'newPasswordToggle');
+        setupPasswordToggle('newConfirmPassword', 'newConfirmPasswordToggle');
+        setupPasswordToggle('editPassword', 'editPasswordToggle');
+        setupPasswordToggle('editConfirmPassword', 'editConfirmPasswordToggle');
+
+        // 密码强度检测
+        function setupPasswordStrength(inputId, meterId, textId) {
+            const input = document.getElementById(inputId);
+            const meterFill = document.getElementById(meterId);
+            const strengthText = document.getElementById(textId);
+            
+            input.addEventListener('input', () => {
+                const password = input.value;
+                
+                if (password.length === 0) {
+                    meterFill.style.width = '0%';
+                    meterFill.style.backgroundColor = '#e74c3c';
+                    strengthText.textContent = '密码强度: 弱';
+                    strengthText.className = 'strength-text text-muted';
+                    return;
+                }
+                
+                // 简单密码强度检测
+                let strength = 0;
+                if (password.length >= 8) strength += 20;
+                if (/[A-Z]/.test(password)) strength += 20;
+                if (/[a-z]/.test(password)) strength += 20;
+                if (/[0-9]/.test(password)) strength += 20;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+                
+                // 更新密码强度显示
+                meterFill.style.width = `${Math.min(strength, 100)}%`;
+                
+                if (strength < 40) {
+                    meterFill.style.backgroundColor = '#e74c3c';
+                    strengthText.textContent = '密码强度: 弱';
+                    strengthText.className = 'strength-text text-danger';
+                } else if (strength < 70) {
+                    meterFill.style.backgroundColor = '#f39c12';
+                    strengthText.textContent = '密码强度: 中';
+                    strengthText.className = 'strength-text text-warning';
+                } else {
+                    meterFill.style.backgroundColor = '#27ae60';
+                    strengthText.textContent = '密码强度: 强';
+                    strengthText.className = 'strength-text text-success';
+                }
+            });
+        }
+
+        setupPasswordStrength('newPassword', 'newStrengthMeterFill', 'newStrengthText');
+        setupPasswordStrength('editPassword', 'editStrengthMeterFill', 'editStrengthText');
+
+        // 密码一致性检测
+        function setupPasswordMatch(confirmInputId, passwordInputId, errorId, successId) {
+            const passwordInput = document.getElementById(passwordInputId);
+            const confirmInput = document.getElementById(confirmInputId);
+            const errorElement = document.getElementById(errorId);
+            const successElement = document.getElementById(successId);
+            
+            confirmInput.addEventListener('input', () => {
+                const password = passwordInput.value;
+                const confirmPassword = confirmInput.value;
+                
+                if (password !== confirmPassword) {
+                    errorElement.style.display = 'block';
+                    successElement.style.display = 'none';
+                    confirmInput.classList.add('is-invalid');
+                } else {
+                    errorElement.style.display = 'none';
+                    successElement.style.display = 'block';
+                    confirmInput.classList.remove('is-invalid');
+                }
+            });
+        }
+
+        setupPasswordMatch('newConfirmPassword', 'newPassword', 'newPasswordMatch', 'newPasswordMatchSuccess');
+        setupPasswordMatch('editConfirmPassword', 'editPassword', 'editPasswordMatch', 'editPasswordMatchSuccess');
+
+        // 添加用户表单提交
+        document.getElementById('addUserForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // 简单验证
+            const username = document.getElementById('newUsername').value;
+            const email = document.getElementById('newEmail').value;
+            const password = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('newConfirmPassword').value;
+            
+            if (!username || !email || !password || password !== confirmPassword) {
+                showNotification('添加失败', '请确保所有必填字段已填写，并且密码匹配！');
+                return;
+            }
+            
+            // 模拟添加成功
+            showNotification('添加成功', '新用户已成功添加！');
+            
+            // 3秒后刷新页面
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        });
+
+        // 编辑用户表单提交
+        document.getElementById('editUserForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // 简单验证
+            const password = document.getElementById('editPassword').value;
+            const confirmPassword = document.getElementById('editConfirmPassword').value;
+            
+            if (password && password !== confirmPassword) {
+                showNotification('保存失败', '请确保密码匹配！');
+                return;
+            }
+            
+            // 模拟保存成功
+            showNotification('保存成功', '用户信息已成功更新！');
+            
+            // 3秒后关闭模态框
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+            }, 1000);
+        });
+
+        // 用户状态切换
+        function toggleUserStatus(userId) {
+            const switchToggle = document.querySelector(`.switch-toggle[data-user-id="${userId}"]`);
+            switchToggle.classList.toggle('active');
+            
+            if (switchToggle.classList.contains('active')) {
+                showNotification('状态更新', `用户已启用`);
+            } else {
+                showNotification('状态更新', `用户已禁用`);
+            }
+        }
+    </script>
+</body>
+</html>

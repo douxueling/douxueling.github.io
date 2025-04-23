@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时监控告警</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1a2a6c, #e8e6e6, #fdbb2d);
+            background-size: 400% 400%;
+            animation: gradient 20s ease infinite;
+            height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 粒子背景样式 */
+        #particles-js {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* 侧边栏样式 */
+        .sidebar {
+            background-color: rgba(255, 255, 255, 0.95);
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            height: 100vh;
+            position: fixed;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        .sidebar .nav-link {
+            color: rgba(58, 80, 107, 0.85);
+            border-radius: 8px;
+            margin: 5px 15px;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(58, 80, 107, 0.1);
+            color: #3a506b;
+            transform: translateX(5px);
+        }
+        .sidebar .nav-link.active {
+            background-color: #3a506b;
+            color: white;
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        .sidebar .logo {
+            padding: 20px 15px;
+            text-align: center;
+            background-color: #3a506b;
+            color: white;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        .sidebar .logo i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* 主内容区域 */
+        .content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        .dashboard-header {
+            margin-bottom: 30px;
+        }
+        .dashboard-header h3 {
+            color: #3a506b;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .dashboard-header p {
+            color: #747b8c;
+            margin-bottom: 0;
+        }
+
+        /* 卡片样式 */
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: none;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            background-color: #fff;
+            border-bottom: none;
+            font-weight: 600;
+            color: #3a506b;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+        }
+        .card-header i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+            color: #3a506b;
+        }
+        .card-body {
+            padding: 20px;
+        }
+
+        /* 仪表盘样式 */
+        .dashboard-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .dashboard-item {
+            flex: 1;
+            min-width: 250px;
+            height: 200px;
+            position: relative;
+        }
+
+        /* 告警列表样式 */
+        .alert-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .alert-table th, .alert-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .alert-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #3a506b;
+        }
+        .alert-table tr:hover {
+            background-color: rgba(236, 240, 241, 0.5);
+        }
+        .severity-high {
+            color: #e74c3c;
+        }
+        .severity-medium {
+            color: #f39c12;
+        }
+        .severity-low {
+            color: #27ae60;
+        }
+
+        /* 图表样式 */
+        .dashboard-chart {
+            height: 400px;
+            margin-top: 20px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .content {
+                max-width: 100%;
+                padding: 20px;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- 粒子背景容器 -->
+    <div id="particles-js"></div>
+
+    <!-- 主内容区域 -->
+    <div class="content">
+        <header class="dashboard-header">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h3>实时监控告警</h3>
+                    <p>系统状态: <span class="text-success active" title="">正常运行</span></p>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-primary me-2" onclick="switchToAlerts()">告警列表</button>
+                    <button class="btn btn-outline-primary" onclick="switchToDashboard()">实时监控</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 实时监控仪表盘 -->
+        <section id="dashboard" class="fade-in">
+            <h4 class="mb-4">关键安全指标监控</h4>
+            <div class="dashboard-container">
+                <div class="dashboard-item" id="networkTrafficDashboard"></div>
+                <div class="dashboard-item" id="loginAttemptsDashboard"></div>
+                <div class="dashboard-item" id="cpuUsageDashboard"></div>
+                <div class="dashboard-item" id="memoryUsageDashboard"></div>
+            </div>
+
+            <!-- 实时监控图表 -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card monitor-card">
+                        <div class="card-header">
+                            <i class="bi bi-graph-up me-2"></i> 网络流量监控
+                        </div>
+                        <div class="card-body">
+                            <canvas id="trafficChart" class="dashboard-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card monitor-card">
+                        <div class="card-header">
+                            <i class="bi bi-cpu me-2"></i> 系统资源使用率
+                        </div>
+                        <div class="card-body">
+                            <canvas id="resourceChart" class="dashboard-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 告警列表 -->
+        <section id="alerts" class="d-none fade-in">
+            <h4 class="mb-4">告警列表</h4>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-exclamation-triangle me-2"></i> 告警列表
+                    </div>
+                    <div>
+                        <button class="btn btn-success" onclick="exportAlertsToExcel()">导出为 Excel</button>
+                        <button class="btn btn-info" onclick="loadMoreAlerts()">加载更多</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="alert-table">
+                        <thead>
+                            <tr>
+                                <th>告警时间</th>
+                                <th>告警类型</th>
+                                <th>告警描述</th>
+                                <th>受影响资产</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertTableBody">
+                            <tr>
+                                <td>2023-10-15 10:30:45</td>
+                                <td class="severity-high">高风险</td>
+                                <td>检测到未知IP地址尝试访问系统敏感端口。</td>
+                                <td>Web服务器</td>
+                                <td>未处理</td>
+                                <td><button class="btn btn-sm btn-primary" onclick="confirmAlert(1)">确认</button></td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 10:25:12</td>
+                                <td class="severity-medium">中风险</td>
+                                <td>系统内存使用率超过80%，建议检查内存使用情况。</td>
+                                <td>数据库服务器</td>
+                                <td>未处理</td>
+                                <td><button class="btn btn-sm btn-primary" onclick="confirmAlert(2)">确认</button></td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 10:20:08</td>
+                                <td class="severity-low">低风险</td>
+                                <td>检测到用户登录失败次数过多，已自动锁定账户。</td>
+                                <td>应用服务器</td>
+                                <td>已处理</td>
+                                <td><button class="btn btn-sm btn-secondary" disabled>已确认</button></td>
+                            </tr>
+                            <tr>
+                                <td>2023-10-15 10:15:30</td>
+                                <td class="severity-medium">中风险</td>
+                                <td>系统检测到异常登录行为，建议进一步调查。</td>
+                                <td>管理控制台</td>
+                                <td>未处理</td>
+                                <td><button class="btn btn-sm btn-primary" onclick="confirmAlert(4)">确认</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-clock-history me-2"></i> 历史记录
+                    </div>
+                    <div>
+                        <button class="btn btn-success btn-sm" onclick="exportHistoryToExcel()">导出历史记录</button>
+                        <button class="btn btn-info btn-sm" onclick="loadMoreHistory()">加载更多</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table class="alert-table">
+                        <thead>
+                            <tr>
+                                <th>告警时间</th>
+                                <th>告警类型</th>
+                                <th>告警描述</th>
+                                <th>受影响资产</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 隐藏的告警数据容器 -->
+    <div style="display: none;">
+        <table id="hiddenAlertTable">
+            <tbody id="hiddenAlertTableBody"></tbody>
+        </table>
+        <table id="hiddenHistoryTable">
+            <tbody id="hiddenHistoryTableBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // 全局变量存储告警数据
+        window.alertData = {
+            alerts: [
+                {
+                    time: '2023-10-15 10:30:45',
+                    type: '高风险',
+                    description: '检测到未知IP地址尝试访问系统敏感端口。',
+                    asset: 'Web服务器',
+                    status: '未处理',
+                    severity: '高风险'
+                },
+                {
+                    time: '2023-10-15 10:25:12',
+                    type: '中风险',
+                    description: '系统内存使用率超过80%，建议检查内存使用情况。',
+                    asset: '数据库服务器',
+                    status: '未处理',
+                    severity: '中风险'
+                },
+                {
+                    time: '2023-10-15 10:20:08',
+                    type: '低风险',
+                    description: '检测到用户登录失败次数过多，已自动锁定账户。',
+                    asset: '应用服务器',
+                    status: '已处理',
+                    severity: '低风险'
+                },
+                {
+                    time: '2023-10-15 10:15:30',
+                    type: '中风险',
+                    description: '系统检测到异常登录行为，建议进一步调查。',
+                    asset: '管理控制台',
+                    status: '未处理',
+                    severity: '中风险'
+                }
+            ],
+            history: [],
+            allAlerts: []
+        };
+
+        // 页面切换功能
+        function switchToDashboard() {
+            document.getElementById('dashboard').classList.remove('d-none');
+            document.getElementById('alerts').classList.add('d-none');
+        }
+
+        function switchToAlerts() {
+            document.getElementById('dashboard').classList.add('d-none');
+            document.getElementById('alerts').classList.remove('d-none');
+        }
+
+        // 确认告警功能
+        function confirmAlert(alertId) {
+            const alertRow = document.querySelector(`#alertTableBody tr:nth-child(${alertId})`);
+            const historyTableBody = document.getElementById('historyTableBody');
+            const hiddenHistoryTableBody = document.getElementById('hiddenHistoryTableBody');
+            
+            // 将告警状态更新为“已处理”
+            alertRow.cells[4].textContent = '已处理';
+            alertRow.cells[5].innerHTML = '<button class="btn btn-sm btn-secondary" disabled>已确认</button>';
+            
+            // 将已处理的告警添加到历史记录
+            const newHistoryRow = alertRow.cloneNode(true);
+            
+            // 确保按钮的事件监听器被移除
+            const historyButtons = newHistoryRow.querySelectorAll('button');
+            historyButtons.forEach(button => {
+                button.removeAttribute('onclick');
+                button.disabled = true;
+            });
+            
+            // 如果历史记录超过5条，移除最旧的记录并存储在隐藏容器中
+            if (historyTableBody.rows.length >= 5) {
+                const oldestRow = historyTableBody.lastChild;
+                if (oldestRow) {
+                    hiddenHistoryTableBody.appendChild(oldestRow);
+                }
+            }
+            
+            historyTableBody.insertBefore(newHistoryRow, historyTableBody.firstChild);
+            
+            // 从告警列表中移除该告警
+            alertRow.remove();
+            
+            // 更新全局数据
+            window.alertData.alerts = Array.from(document.getElementById('alertTableBody').rows).map(row => ({
+                time: row.cells[0].textContent,
+                type: row.cells[1].textContent,
+                description: row.cells[2].textContent,
+                asset: row.cells[3].textContent,
+                status: row.cells[4].textContent,
+                severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                          row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+            }));
+            
+            // 获取所有历史记录（包括隐藏的）
+            const allHistoryRows = Array.from(historyTableBody.rows).concat(Array.from(hiddenHistoryTableBody.rows));
+            window.alertData.history = allHistoryRows.map(row => ({
+                time: row.cells[0].textContent,
+                type: row.cells[1].textContent,
+                description: row.cells[2].textContent,
+                asset: row.cells[3].textContent,
+                status: row.cells[4].textContent,
+                severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                          row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+            }));
+            
+            // 合并所有数据
+            window.alertData.allAlerts = [...window.alertData.alerts, ...window.alertData.history];
+            
+            // 将数据存储到localStorage
+            localStorage.setItem('alertData', JSON.stringify(window.alertData));
+        }
+
+        // 创建仪表盘
+        function createDashboard(elementId, title, min, max, warningThreshold, dangerThreshold, currentValue) {
+            const width = 200;
+            const height = 200;
+            const radius = Math.min(width, height) / 2;
+            const colorNormal = '#27ae60';
+            const colorWarning = '#f39c12';
+            const colorDanger = '#e74c3c';
+
+            const svg = d3.select(`#${elementId}`)
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .append('g')
+                .attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+            // 绘制背景圆弧
+            const arc = d3.arc()
+                .innerRadius(radius - 40)
+                .outerRadius(radius)
+                .startAngle(-Math.PI / 2);
+
+            // 绘制正常范围
+            svg.append('path')
+                .datum({endAngle: (min / max - 0.5) * Math.PI * 2})
+                .style('fill', colorNormal)
+                .attr('d', arc);
+
+            // 绘制警告范围
+            svg.append('path')
+                .datum({endAngle: (warningThreshold / max - 0.5) * Math.PI * 2})
+                .style('fill', colorWarning)
+                .attr('d', arc);
+
+            // 绘制危险范围
+            svg.append('path')
+                .datum({endAngle: (dangerThreshold / max - 0.5) * Math.PI * 2})
+                .style('fill', colorDanger)
+                .attr('d', arc);
+
+            // 绘制指针
+            const pointer = svg.append('line')
+                .attr('class', 'pointer')
+                .attr('x1', 0)
+                .attr('y1', -radius + 30)
+                .attr('x2', 0)
+                .attr('y2', -radius + 10)
+                .attr('stroke', '#333')
+                .attr('stroke-width', 3)
+                .attr('stroke-linecap', 'round');
+
+            // 绘制刻度线
+            const ticks = 5;
+            const tickStep = (max - min) / ticks;
+            const tickArc = d3.arc()
+                .innerRadius(radius - 30)
+                .outerRadius(radius - 25)
+                .startAngle(-Math.PI / 2);
+
+            for (let i = 0; i <= ticks; i++) {
+                const value = min + i * tickStep;
+                const angle = (value / max - 0.5) * Math.PI * 2;
+
+                svg.append('path')
+                    .datum({endAngle: angle})
+                    .style('fill', '#333')
+                    .attr('d', tickArc);
+
+                svg.append('text')
+                    .attr('transform', `rotate(${angle * (180 / Math.PI)}) translate(0, ${-(radius - 45)})`)
+                    .attr('text-anchor', 'middle')
+                    .attr('dy', '.35em')
+                    .style('font-size', '10px')
+                    .text(value);
+            }
+
+            // 绘制标题
+            svg.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('y', radius - 10)
+                .style('font-size', '12px')
+                .text(title);
+
+            // 绘制当前值
+            svg.append('text')
+                .attr('text-anchor', 'middle')
+                .attr('y', radius - 35)
+                .style('font-size', '14px')
+                .style('font-weight', 'bold')
+                .text(`${currentValue}/${max}`);
+
+            // 更新指针位置
+            updateDashboardPointer(elementId, currentValue, max);
+        }
+
+        // 更新仪表盘指针
+        function updateDashboardPointer(elementId, value, max) {
+            const angle = (value / max - 0.5) * Math.PI * 2;
+            d3.select(`#${elementId} .pointer`)
+                .transition()
+                .duration(500)
+                .attr('transform', `rotate(${angle * (180 / Math.PI)})`);
+        }
+
+        // 初始化粒子背景
+        function initParticles() {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#ffffff"
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        },
+                        "polygon": {
+                            "nb_sides": 5
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": false,
+                        "anim": {
+                            "enable": false,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": false,
+                            "speed": 40,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#ffffff",
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 1
+                            }
+                        },
+                        "bubble": {
+                            "distance": 400,
+                            "size": 40,
+                            "duration": 2,
+                            "opacity": 8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        },
+                        "remove": {
+                            "particles_nb": 2
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+        }
+
+        // 导出告警列表为 Excel
+        function exportAlertsToExcel() {
+            // 获取表格元素
+            const table = document.querySelector('.alert-table');
+            
+            // 提取表头
+            const headers = [];
+            const headerRow = table.querySelector('thead tr');
+            headerRow.querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent);
+            });
+            
+            // 提取表格数据
+            const data = [];
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('td').forEach((td, index) => {
+                    // 处理特殊样式（如 severity-high）
+                    if (td.classList.contains('severity-high') || 
+                        td.classList.contains('severity-medium') || 
+                        td.classList.contains('severity-low')) {
+                        rowData.push(td.textContent.trim());
+                    } else {
+                        rowData.push(td.textContent.trim());
+                    }
+                });
+                data.push(rowData);
+            });
+            
+            // 合并表头和数据
+            const wsData = [headers, ...data];
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '告警列表');
+            
+            // 导出文件
+            const date = new Date();
+            const fileName = `告警列表_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // 导出历史记录为 Excel
+        function exportHistoryToExcel() {
+            // 获取历史记录表格元素
+            const historyTable = document.querySelector('#historyTableBody').parentNode.parentNode;
+            
+            // 提取表头
+            const headers = [];
+            const headerRow = historyTable.querySelector('thead tr');
+            headerRow.querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent);
+            });
+            
+            // 提取表格数据
+            const data = [];
+            const rows = historyTable.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('td').forEach((td, index) => {
+                    // 处理特殊样式（如 severity-high）
+                    if (td.classList.contains('severity-high') || 
+                        td.classList.contains('severity-medium') || 
+                        td.classList.contains('severity-low')) {
+                        rowData.push(td.textContent.trim());
+                    } else {
+                        rowData.push(td.textContent.trim());
+                    }
+                });
+                data.push(rowData);
+            });
+            
+            // 合并表头和数据
+            const wsData = [headers, ...data];
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '历史记录');
+            
+            // 导出文件
+            const date = new Date();
+            const fileName = `历史记录_${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // 模拟实时更新告警数据
+        function simulateRealTimeUpdates() {
+            const alertTypes = ['高风险', '中风险', '低风险'];
+            const alertDescriptions = [
+                '检测到异常网络活动，建议进一步调查。',
+                '系统内存使用率超过80%，建议检查内存使用情况。',
+                '检测到用户登录失败次数过多，已自动锁定账户。',
+                '系统检测到异常登录行为，建议进一步调查。',
+                '检测到未知IP地址尝试访问系统敏感端口。'
+            ];
+            const alertAssets = ['Web服务器', '数据库服务器', '应用服务器', '管理控制台', '网络设备'];
+
+            setInterval(() => {
+                // 随机生成新数据
+                const newAlerts = [
+                    {
+                        time: new Date().toLocaleString(),
+                        type: alertTypes[Math.floor(Math.random() * alertTypes.length)],
+                        description: alertDescriptions[Math.floor(Math.random() * alertDescriptions.length)],
+                        asset: alertAssets[Math.floor(Math.random() * alertAssets.length)],
+                        status: '未处理',
+                        severity: alertTypes[Math.floor(Math.random() * alertTypes.length)]
+                    }
+                ];
+
+                // 更新表格
+                updateAlertTable(newAlerts);
+            }, 10000); // 每10秒更新一次
+        }
+
+        // 更新告警表格
+        function updateAlertTable(alerts) {
+            const tableBody = document.getElementById('alertTableBody');
+            const hiddenAlertTableBody = document.getElementById('hiddenAlertTableBody');
+            
+            alerts.forEach((alert, index) => {
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${alert.time}</td>
+                    <td class="severity-high">${alert.type}</td>
+                    <td>${alert.description}</td>
+                    <td>${alert.asset}</td>
+                    <td>${alert.status}</td>
+                    <td><button class="btn btn-sm btn-primary" onclick="confirmAlert(${tableBody.rows.length + 1})">确认</button></td>
+                `;
+                
+                // 高亮显示新添加的告警
+                newRow.style.backgroundColor = '#e8f5e9';
+                newRow.style.transition = 'background-color 0.5s';
+                
+                // 3 秒后恢复默认样式
+                setTimeout(() => {
+                    newRow.style.backgroundColor = '';
+                }, 3000);
+                
+                // 如果告警列表超过5条，移除最旧的待确认数据并存储在隐藏容器中
+                if (tableBody.rows.length >= 5) {
+                    // 找到未处理状态中最旧的数据
+                    let oldestUnprocessedRow = null;
+                    let oldestTime = new Date().getTime();
+                    
+                    for (let i = 0; i < tableBody.rows.length; i++) {
+                        const row = tableBody.rows[i];
+                        if (row.cells[4].textContent === '未处理') {
+                            const timeCell = row.cells[0].textContent;
+                            const time = new Date(timeCell).getTime();
+                            if (time < oldestTime) {
+                                oldestTime = time;
+                                oldestUnprocessedRow = row;
+                            }
+                        }
+                    }
+                    
+                    if (oldestUnprocessedRow) {
+                        hiddenAlertTableBody.appendChild(oldestUnprocessedRow);
+                    }
+                }
+                
+                tableBody.insertBefore(newRow, tableBody.firstChild);
+                
+                // 更新全局数据
+                window.alertData.alerts = Array.from(document.getElementById('alertTableBody').rows).map(row => ({
+                    time: row.cells[0].textContent,
+                    type: row.cells[1].textContent,
+                    description: row.cells[2].textContent,
+                    asset: row.cells[3].textContent,
+                    status: row.cells[4].textContent,
+                    severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                              row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+                }));
+                
+                // 获取所有历史记录（包括隐藏的）
+                const allHistoryRows = Array.from(document.getElementById('historyTableBody').rows).concat(Array.from(document.getElementById('hiddenHistoryTableBody').rows));
+                window.alertData.history = allHistoryRows.map(row => ({
+                    time: row.cells[0].textContent,
+                    type: row.cells[1].textContent,
+                    description: row.cells[2].textContent,
+                    asset: row.cells[3].textContent,
+                    status: row.cells[4].textContent,
+                    severity: row.cells[1].classList.contains('severity-high') ? '高风险' : 
+                              row.cells[1].classList.contains('severity-medium') ? '中风险' : '低风险'
+                }));
+                
+                // 合并所有数据
+                window.alertData.allAlerts = [...window.alertData.alerts, ...window.alertData.history];
+                
+                // 将数据存储到localStorage
+                localStorage.setItem('alertData', JSON.stringify(window.alertData));
+            });
+        }
+
+        // 加载更多告警
+        function loadMoreAlerts() {
+            const hiddenAlertTableBody = document.getElementById('hiddenAlertTableBody');
+            const alertTableBody = document.getElementById('alertTableBody');
+            
+            // 将所有隐藏的告警数据加载到告警列表中
+            while (hiddenAlertTableBody.rows.length > 0) {
+                const row = hiddenAlertTableBody.firstChild;
+                alertTableBody.appendChild(row);
+            }
+            
+            // 设置10秒后自动收起
+            setTimeout(() => {
+                // 将超出5条的告警数据移回隐藏容器
+                while (alertTableBody.rows.length > 5) {
+                    const oldestRow = alertTableBody.lastChild;
+                    if (oldestRow) {
+                        hiddenAlertTableBody.appendChild(oldestRow);
+                    }
+                }
+            }, 10000);
+        }
+
+        // 加载更多历史记录
+        function loadMoreHistory() {
+            const hiddenHistoryTableBody = document.getElementById('hiddenHistoryTableBody');
+            const historyTableBody = document.getElementById('historyTableBody');
+            
+            // 将所有隐藏的历史记录数据加载到历史记录中
+            while (hiddenHistoryTableBody.rows.length > 0) {
+                const row = hiddenHistoryTableBody.firstChild;
+                historyTableBody.appendChild(row);
+            }
+            
+            // 设置10秒后自动收起
+            setTimeout(() => {
+                // 将超出5条的历史记录数据移回隐藏容器
+                while (historyTableBody.rows.length > 5) {
+                    const oldestRow = historyTableBody.lastChild;
+                    if (oldestRow) {
+                        hiddenHistoryTableBody.appendChild(oldestRow);
+                    }
+                }
+            }, 10000);
+        }
+
+        // 初始化图表
+        function initCharts() {
+            // 网络流量图表
+            const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+            const trafficChart = new Chart(trafficCtx, {
+                type: 'line',
+                data: {
+                    labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+                    datasets: [{
+                        label: '入站流量 (Mbps)',
+                        data: [12, 19, 8, 15, 20, 12, 18],
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3498db',
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: '出站流量 (Mbps)',
+                        data: [8, 12, 15, 9, 11, 16, 13],
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#e74c3c',
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    elements: {
+                        line: {
+                            tension: 0.4
+                        }
+                    }
+                }
+            });
+
+            // 系统资源使用率图表
+            const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+            const resourceChart = new Chart(resourceCtx, {
+                type: 'line',
+                data: {
+                    labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+                    datasets: [{
+                        label: 'CPU使用率 (%)',
+                        data: [25, 30, 20, 35, 40, 30, 35],
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#27ae60',
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: '内存使用率 (%)',
+                        data: [60, 65, 70, 68, 75, 80, 78],
+                        borderColor: '#f39c12',
+                        backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#f39c12',
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: '磁盘使用率 (%)',
+                        data: [40, 42, 45, 43, 47, 49, 50],
+                        borderColor: '#9b59b6',
+                        backgroundColor: 'rgba(155, 89, 182, 0.1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#9b59b6',
+                        pointRadius: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // 模拟实时更新
+            setInterval(() => {
+                // 随机更新仪表盘数据
+                updateDashboardPointer('networkTrafficDashboard', Math.floor(Math.random() * 100), 100);
+                updateDashboardPointer('loginAttemptsDashboard', Math.floor(Math.random() * 50), 50);
+                updateDashboardPointer('cpuUsageDashboard', Math.floor(Math.random() * 100), 100);
+                updateDashboardPointer('memoryUsageDashboard', Math.floor(Math.random() * 100), 100);
+
+                // 随机更新网络流量数据
+                const trafficData = trafficChart.data.datasets[0].data;
+                const randomValue = Math.floor(Math.random() * 20) + 5;
+                trafficData.shift();
+                trafficData.push(randomValue);
+
+                // 随机更新系统资源数据
+                const cpuData = resourceChart.data.datasets[0].data;
+                const cpuRandomValue = Math.floor(Math.random() * 40) + 10;
+                cpuData.shift();
+                cpuData.push(cpuRandomValue);
+
+                trafficChart.update();
+                resourceChart.update();
+            }, 5000);
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化粒子背景
+            initParticles();
+
+            // 创建仪表盘
+            createDashboard('networkTrafficDashboard', '网络流量 (Mbps)', 0, 100, 70, 90, 55);
+            createDashboard('loginAttemptsDashboard', '登录失败次数', 0, 50, 30, 40, 15);
+            createDashboard('cpuUsageDashboard', 'CPU使用率 (%)', 0, 100, 70, 90, 65);
+            createDashboard('memoryUsageDashboard', '内存使用率 (%)', 0, 100, 70, 90, 75);
+
+            // 初始化图表
+            initCharts();
+
+            // 启动实时更新
+            simulateRealTimeUpdates();
+        });
+    </script>
+    <hr>
+    <a href="index.html" ><h align="center">返回</h>
+</body>
+</html>

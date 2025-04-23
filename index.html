@@ -306,27 +306,27 @@
                 </div>
                 <ul class="nav flex-column mt-4">
                     <li class="nav-item">
-                        <a class="nav-link active" href="1.html">
+                        <a class="nav-link active" href="nessus.html">
                             <i class="bi bi-shield-check"></i> 漏洞扫描识别
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="2.html">
+                        <a class="nav-link" href="risk.html">
                             <i class="bi bi-exclamation-triangle"></i> 风险评估
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="3.html">
+                        <a class="nav-link" href="alert.html">
                             <i class="bi bi-bell"></i> 实时监控告警
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="4.html">
+                        <a class="nav-link" href="report.html">
                             <i class="bi bi-file-earmark-text"></i> 报告生成
                         </a>
                     </li>
                     <li class="nav-item mt-5">
-                        <a class="nav-link" href="6.html">
+                        <a class="nav-link" href="user.html">
                             <i class="bi bi-people"></i> 用户管理
                         </a>
                     </li>
@@ -532,36 +532,40 @@
         }
 
         // 登录表单提交
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             
-            // 获取用户数据
-            const users = getUserData();
-            
-            // 验证用户名和密码
-            const user = users.find(u => u.username === username || u.email === username);
-            
-            if (user && user.password === btoa(password)) {
-                // 登录成功
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('username', username);
+            try {
+                const response = await fetch('http://localhost:3001/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
                 
-                showNotification('登录成功', `欢迎回来，${username}！`);
-                
-                // 隐藏登录模态框
-                const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-                if (loginModal) {
-                    loginModal.hide();
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.username);
+                    
+                    showNotification('登录成功', `欢迎回来，${username}！`);
+                    
+                    // 隐藏登录模态框
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                    if (loginModal) {
+                        loginModal.hide();
+                    }
+                    
+                    // 显示主内容
+                    document.getElementById('sidebarContent').classList.remove('hidden-content');
+                    document.getElementById('mainContent').classList.remove('hidden-content');
+                } else {
+                    // 登录失败
+                    showNotification('登录失败', data.error || '登录失败');
                 }
-                
-                // 显示主内容
-                document.getElementById('sidebarContent').classList.remove('hidden-content');
-                document.getElementById('mainContent').classList.remove('hidden-content');
-            } else {
-                // 登录失败
-                showNotification('登录失败', '用户名或密码错误，请重试！');
+            } catch (err) {
+                showNotification('错误', '无法连接服务器');
             }
         });
 

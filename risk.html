@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风险评估结果</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f8f9fa;
+            --danger-color: #e63946;
+            --warning-color: #ff9f43;
+            --success-color: #27ae60;
+            --info-color: #3498db;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .dashboard-header {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            padding: 15px 0;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+            background-color: white;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .risk-card {
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .high-risk {
+            background-color: var(--danger-color);
+        }
+        
+        .medium-risk {
+            background-color: var(--warning-color);
+        }
+        
+        .low-risk {
+            background-color: var(--success-color);
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 30px;
+        }
+        
+        .risk-table {
+            font-size: 0.9rem;
+        }
+        
+        .risk-table th {
+            background-color: var(--secondary-color);
+            position: sticky;
+            top: 0;
+        }
+        
+        .risk-table tr:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .risk-status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .status-new {
+            background-color: var(--info-color);
+            color: white;
+        }
+        
+        .status-reviewed {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .status-resolved {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .detail-section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        
+        .section-title i {
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .badge-count {
+            font-weight: 600;
+            margin-left: 5px;
+        }
+        
+        .risk-priority {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .priority-high {
+            background-color: var(--danger-color);
+        }
+        
+        .priority-medium {
+            background-color: var(--warning-color);
+        }
+        
+        .priority-low {
+            background-color: var(--success-color);
+        }
+        
+        .risk-trend {
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+        }
+        
+        .trend-up {
+            background-color: #e63946;
+            color: white;
+        }
+        
+        .trend-down {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1; 
+            background-color: #f5f7fa;
+        }
+
+        .filter-panel {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .load-more-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+
+    <header class="dashboard-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="h4 mb-0">风险评估结果</h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button class="btn btn-outline-primary me-2" id="exportReport">
+                        <i class="bi bi-download"></i> 导出报告
+                    </button>
+                    <button class="btn btn-primary" id="showFilter">
+                        <i class="bi bi-filter"></i> 筛选
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mt-4">
+        <div class="filter-panel" id="filterPanel" style="display: none;">
+            <h5>筛选条件</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="filterLevel" class="form-label">风险等级</label>
+                        <select class="form-select" id="filterLevel">
+                            <option value="">全部</option>
+                            <option value="高">高</option>
+                            <option value="中">中</option>
+                            <option value="低">低</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="filterStatus" class="form-label">状态</label>
+                        <select class="form-select" id="filterStatus">
+                            <option value="">全部</option>
+                            <option value="新建">新建</option>
+                            <option value="已审核">已审核</option>
+                            <option value="已解决">已解决</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label for="filterTrend" class="form-label">趋势</label>
+                        <select class="form-select" id="filterTrend">
+                            <option value="">全部</option>
+                            <option value="上升">上升</option>
+                            <option value="下降">下降</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="text-end">
+                <button class="btn btn-outline-secondary me-2" id="resetFilter">重置</button>
+                <button class="btn btn-primary" id="applyFilter">应用</button>
+            </div>
+        </div>
+
+        <section id="charts">
+            <h2 class="section-title">
+                <i class="bi bi-bar-chart"></i> 风险统计
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            风险数量分布
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="riskBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            风险比例
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="riskPieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="risk-list">
+            <h2 class="section-title">
+                <i class="bi bi-list-check"></i> 风险评估列表
+            </h2>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>风险列表</span>
+                    <div class="input-group" style="width: 300px;">
+                        <input type="text" class="form-control" placeholder="搜索风险..." id="searchInput">
+                        <button class="btn btn-outline-secondary" type="button" onclick="searchRisks()">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover risk-table mb-0" id="riskTable">
+                            <thead>
+                                <tr>
+                                    <th>优先级</th>
+                                    <th>风险名称</th>
+                                    <th>风险评分</th>
+                                    <th>风险等级</th>
+                                    <th>影响资产</th>
+                                    <th>状态</th>
+                                    <th>趋势</th>
+                                    <th>最后更新</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="riskTableBody">
+                                <!-- 表格数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="loadMoreRisks()">加载更多</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="risk-details" class="detail-section">
+            <h2 class="section-title">
+                <i class="bi bi-exclamation-triangle"></i> 风险详情
+                <button class="btn-close float-end" onclick="hideRiskDetails()"></button>
+            </h2>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <span id="detail-risk-name">云存储未加密传输</span>
+                            <span class="badge bg-danger ms-2" id="detail-risk-level">高风险</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5>风险描述</h5>
+                                    <p id="detail-risk-description">检测到云存储服务在传输数据时未使用加密协议，可能导致敏感数据在传输过程中被截获。</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>影响范围</h5>
+                                    <p id="detail-risk-assets">生产环境、测试环境</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h5>风险评分</h5>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-3" style="height: 8px;">
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: 85%;" id="detail-risk-score-bar" aria-valuenow="85" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="fw-bold" id="detail-risk-score">8.5/10</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>风险可能性</h5>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-3" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: 70%;" id="detail-risk-possibility" aria-valuenow="70" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="fw-bold" id="detail-risk-possibility-value">70%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <h5>建议措施</h5>
+                                    <ol id="detail-recommendations">
+                                        <li>立即启用云存储服务的传输加密功能</li>
+                                        <li>检查现有数据传输日志，确认是否有数据泄露迹象</li>
+                                        <li>更新安全策略，确保所有敏感数据传输都使用加密协议</li>
+                                        <li>定期审查和更新加密策略</li>
+                                    </ol>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <h5>相关资源</h5>
+                                    <ul class="list-group" id="detail-resources">
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            云存储服务配置指南
+                                            <a href="cloud-storage-guide.html" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            数据加密最佳实践
+                                            <a href="data-encryption-practices.html" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            API密钥管理指南
+                                            <a href="api-key-management.html" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            SSL证书管理指南
+                                            <a href="ssl-certificate-management.html" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            密码策略管理指南
+                                            <a href="password-policy-management.html" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            风险历史
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline" id="detail-risk-history">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted small">状态更新</span>
+                                        <span class="text-muted small">2023-06-15 14:30</span>
+                                    </div>
+                                    <p class="mb-0">风险状态更新为"新建"</p>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted small">评分更新</span>
+                                        <span class="text-muted small">2023-06-15 14:30</span>
+                                    </div>
+                                    <p class="mb-0">风险评分从8.2更新为8.5</p>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted small">首次检测</span>
+                                        <span class="text-muted small">2023-06-15 08:15</span>
+                                    </div>
+                                    <p class="mb-0">系统首次检测到此风险</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            响应行动
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-outline-primary">
+                                    <i class="bi bi-flag"></i> 标记为高优先级
+                                </button>
+                                <button class="btn btn-outline-primary">
+                                    <i class="bi bi-bookmark-plus"></i> 添加到监控列表
+                                </button>
+                                <button class="btn btn-outline-primary">
+                                    <i class="bi bi-share"></i> 分享给团队
+                                </button>
+                                <button class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> 标记为已处理
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 模拟后端返回的风险数据
+        const riskData = {
+            chartData: {
+                labels: ['高风险', '中风险', '低风险'],
+                barData: [12, 28, 45],
+                pieData: [12, 28, 45]
+            },
+            tableData: [
+                {
+                    id: 1,
+                    name: '云存储未加密传输',
+                    score: 8.5,
+                    level: '高',
+                    assets: '生产环境、测试环境',
+                    status: '新建',
+                    trend: '上升',
+                    trendValue: '+15%',
+                    lastUpdated: '2023-06-15 14:30',
+                    description: '检测到云存储服务在传输数据时未使用加密协议，可能导致敏感数据在传输过程中被截获。',
+                    possibility: 70,
+                    recommendations: [
+                        '立即启用云存储服务的传输加密功能',
+                        '检查现有数据传输日志，确认是否有数据泄露迹象',
+                        '更新安全策略，确保所有敏感数据传输都使用加密协议',
+                        '定期审查和更新加密策略'
+                    ],
+                    resources: [
+                        { name: '云存储服务配置指南', link: 'cloud-storage-guide.html' },
+                        { name: '数据加密最佳实践', link: 'data-encryption-practices.html' },
+                        { name: '安全审计报告 (2023-06-15)', link: 'security-audit-report-2023.html' }
+                    ],
+                    history: [
+                        { type: '状态更新', date: '2023-06-15 14:30', content: '风险状态更新为"新建"' },
+                        { type: '评分更新', date: '2023-06-15 14:30', content: '风险评分从8.2更新为8.5' },
+                        { type: '首次检测', date: '2023-06-15 08:15', content: '系统首次检测到此风险' }
+                    ]
+                },
+                {
+                    id: 2,
+                    name: 'API密钥泄露风险',
+                    score: 7.8,
+                    level: '高',
+                    assets: '开发环境',
+                    status: '已审核',
+                    trend: '下降',
+                    trendValue: '-8%',
+                    lastUpdated: '2023-06-14 09:15',
+                    description: '检测到API密钥可能被泄露，可能导致未授权访问和数据泄露。',
+                    possibility: 65,
+                    recommendations: [
+                        '立即轮换API密钥',
+                        '启用API密钥的访问日志记录',
+                        '限制API密钥的访问权限',
+                        '定期审查API密钥的使用情况'
+                    ],
+                    resources: [
+                        { name: 'API密钥管理指南', link: 'api-key-management.html' },
+                        { name: 'API安全最佳实践', link: 'api-security-practices.html' },
+                        { name: '安全审计报告 (2023-06-14)', link: 'security-audit-report-2023-06-14.html' }
+                    ],
+                    history: [
+                        { type: '状态更新', date: '2023-06-14 09:15', content: '风险状态更新为"已审核"' },
+                        { type: '评分更新', date: '2023-06-14 09:15', content: '风险评分从8.0更新为7.8' },
+                        { type: '首次检测', date: '2023-06-13 10:45', content: '系统首次检测到此风险' }
+                    ]
+                },
+                {
+                    id: 3,
+                    name: '过期的SSL证书',
+                    score: 6.2,
+                    level: '中',
+                    assets: '生产环境',
+                    status: '新建',
+                    trend: '上升',
+                    trendValue: '+5%',
+                    lastUpdated: '2023-06-13 16:45',
+                    description: '检测到生产环境中的SSL证书已过期，可能导致通信中断和安全风险。',
+                    possibility: 50,
+                    recommendations: [
+                        '立即更新过期的SSL证书',
+                        '配置证书自动续期机制',
+                        '定期检查所有环境中的证书有效期',
+                        '启用证书状态监控'
+                    ],
+                    resources: [
+                        { name: 'SSL证书管理指南', link: 'ssl-certificate-management.html' },
+                        { name: '证书续期最佳实践', link: 'certificate-renewal-practices.html' },
+                        { name: '安全审计报告 (2023-06-13)', link: 'security-audit-report-2023-06-13.html' }
+                    ],
+                    history: [
+                        { type: '状态更新', date: '2023-06-13 16:45', content: '风险状态更新为"新建"' },
+                        { type: '评分更新', date: '2023-06-13 16:45', content: '风险评分从6.0更新为6.2' },
+                        { type: '首次检测', date: '2023-06-13 09:30', content: '系统首次检测到此风险' }
+                    ]
+                },
+                {
+                    id: 4,
+                    name: '未授权的云存储访问',
+                    score: 5.9,
+                    level: '中',
+                    assets: '测试环境',
+                    status: '已审核',
+                    trend: '下降',
+                    trendValue: '-3%',
+                    lastUpdated: '2023-06-12 11:20',
+                    description: '检测到测试环境中的云存储存在未授权访问，可能导致数据泄露。',
+                    possibility: 45,
+                    recommendations: [
+                        '立即限制云存储的访问权限',
+                        '启用访问日志记录和监控',
+                        '定期审查访问控制策略',
+                        '实施最小权限原则'
+                    ],
+                    resources: [
+                        { name: '云存储访问控制指南', link: 'cloud-storage-access-control.html' },
+                        { name: '访问控制最佳实践', link: 'access-control-practices.html' },
+                        { name: '安全审计报告 (2023-06-12)', link: 'security-audit-report-2023-06-12.html' }
+                    ],
+                    history: [
+                        { type: '状态更新', date: '2023-06-12 11:20', content: '风险状态更新为"已审核"' },
+                        { type: '评分更新', date: '2023-06-12 11:20', content: '风险评分从6.2更新为5.9' },
+                        { type: '首次检测', date: '2023-06-11 14:15', content: '系统首次检测到此风险' }
+                    ]
+                },
+                {
+                    id: 5,
+                    name: '弱密码策略',
+                    score: 4.7,
+                    level: '低',
+                    assets: '开发环境',
+                    status: '已解决',
+                    trend: '下降',
+                    trendValue: '-10%',
+                    lastUpdated: '2023-06-10 08:55',
+                    description: '检测到开发环境中的密码策略过于简单，可能导致账户被暴力破解。',
+                    possibility: 30,
+                    recommendations: [
+                        '立即更新密码策略，要求强密码',
+                        '启用多因素认证',
+                        '定期更新用户密码',
+                        '实施密码复杂度要求'
+                    ],
+                    resources: [
+                        { name: '密码策略管理指南', link: 'password-policy-management.html' },
+                        { name: '多因素认证最佳实践', link: 'multi-factor-authentication-practices.html' },
+                        { name: '安全审计报告 (2023-06-10)', link: 'security-audit-report-2023-06-10.html' }
+                    ],
+                    history: [
+                        { type: '状态更新', date: '2023-06-10 08:55', content: '风险状态更新为"已解决"' },
+                        { type: '评分更新', date: '2023-06-10 08:55', content: '风险评分从5.0更新为4.7' },
+                        { type: '首次检测', date: '2023-06-09 10:20', content: '系统首次检测到此风险' }
+                    ]
+                }
+            ]
+        };
+
+        // 图表实例
+        let barChart, pieChart;
+
+        // 初始化粒子背景
+        document.addEventListener('DOMContentLoaded', function() {
+            particlesJS('particles-js', {
+                "particles": {
+                    "number": {
+                        "value": 80,
+                        "density": {
+                            "enable": true,
+                            "value_area": 800
+                        }
+                    },
+                    "color": {
+                        "value": "#ffffff"
+                    },
+                    "shape": {
+                        "type": "circle",
+                        "stroke": {
+                            "width": 0,
+                            "color": "#000000"
+                        },
+                        "polygon": {
+                            "nb_sides": 5
+                        }
+                    },
+                    "opacity": {
+                        "value": 0.5,
+                        "random": false,
+                        "anim": {
+                            "enable": false,
+                            "speed": 1,
+                            "opacity_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "size": {
+                        "value": 3,
+                        "random": true,
+                        "anim": {
+                            "enable": false,
+                            "speed": 40,
+                            "size_min": 0.1,
+                            "sync": false
+                        }
+                    },
+                    "line_linked": {
+                        "enable": true,
+                        "distance": 150,
+                        "color": "#ffffff",
+                        "opacity": 0.4,
+                        "width": 1
+                    },
+                    "move": {
+                        "enable": true,
+                        "speed": 2,
+                        "direction": "none",
+                        "random": false,
+                        "straight": false,
+                        "out_mode": "out",
+                        "bounce": false,
+                        "attract": {
+                            "enable": false,
+                            "rotateX": 600,
+                            "rotateY": 1200
+                        }
+                    }
+                },
+                "interactivity": {
+                    "detect_on": "canvas",
+                    "events": {
+                        "onhover": {
+                            "enable": true,
+                            "mode": "grab"
+                        },
+                        "onclick": {
+                            "enable": true,
+                            "mode": "push"
+                        },
+                        "resize": true
+                    },
+                    "modes": {
+                        "grab": {
+                            "distance": 140,
+                            "line_linked": {
+                                "opacity": 1
+                            }
+                        },
+                        "bubble": {
+                            "distance": 400,
+                            "size": 40,
+                            "duration": 2,
+                            "opacity": 8,
+                            "speed": 3
+                        },
+                        "repulse": {
+                            "distance": 200,
+                            "duration": 0.4
+                        },
+                        "push": {
+                            "particles_nb": 4
+                        },
+                        "remove": {
+                            "particles_nb": 2
+                        }
+                    }
+                },
+                "retina_detect": true
+            });
+
+            // 检查是否有漏洞数据
+            const vulnerabilityData = localStorage.getItem('vulnerabilityData');
+            if (vulnerabilityData) {
+                const vulnerabilities = JSON.parse(vulnerabilityData);
+                console.log('从 localStorage 加载漏洞数据成功:', vulnerabilities);
+
+                // 将漏洞数据转换为风险评估数据格式
+                const riskDataToAdd = vulnerabilities.map(vuln => {
+                    return {
+                        id: vuln.id,
+                        name: vuln.name,
+                        score: getRiskScore(vuln.level),
+                        level: VulnLevelToRiskLevel(vuln.level),
+                        assets: '云服务',
+                        status: '新建',
+                        trend: '上升',
+                        trendValue: '+10%',
+                        lastUpdated: vuln.time,
+                        description: vuln.description,
+                        possibility: getRiskPossibility(vuln.level),
+                        recommendations: ['请参考安全文档进行配置调整或代码修复。'],
+                        resources: [],
+                        history: [
+                            { type: '状态更新', date: vuln.time, content: '风险状态更新为"新建"' },
+                            { type: '首次检测', date: vuln.time, content: '系统首次检测到此风险' }
+                        ]
+                    };
+                });
+
+                // 将漏洞数据添加到风险评估列表
+                riskData.tableData = [...riskData.tableData, ...riskDataToAdd];
+            } else {
+                console.log('未从 localStorage 加载到漏洞数据');
+            }
+
+            // 监听 localStorage 变化
+            window.addEventListener('storage', function(e) {
+                if (e.key === 'vulnerabilityData' || e.key === 'scanCompleteStatus') {
+                    console.log('检测到 localStorage 变化:', e.key, e.newValue);
+
+                    // 检查扫描完成标志
+                    if (e.key === 'scanCompleteStatus' && e.newValue === 'true') {
+                        console.log('扫描已完成，更新风险评估列表');
+                        localStorage.removeItem('scanCompleteStatus'); // 移除标志
+
+                        // 重新加载和渲染风险数据
+                        const vulnerabilityData = localStorage.getItem('vulnerabilityData');
+                        if (vulnerabilityData) {
+                            const vulnerabilities = JSON.parse(vulnerabilityData);
+                            console.log('从 localStorage 加载漏洞数据成功:', vulnerabilities);
+
+                            // 将漏洞数据转换为风险评估数据格式
+                            const riskDataToAdd = vulnerabilities.map(vuln => {
+                                return {
+                                    id: vuln.id,
+                                    name: vuln.name,
+                                    score: getRiskScore(vuln.level),
+                                    level: VulnLevelToRiskLevel(vuln.level),
+                                    assets: '云服务',
+                                    status: '新建',
+                                    trend: '上升',
+                                    trendValue: '+10%',
+                                    lastUpdated: vuln.time,
+                                    description: vuln.description,
+                                    possibility: getRiskPossibility(vuln.level),
+                                    recommendations: ['请参考安全文档进行配置调整或代码修复。'],
+                                    resources: [],
+                                    history: [
+                                        { type: '状态更新', date: vuln.time, content: '风险状态更新为"新建"' },
+                                        { type: '首次检测', date: vuln.time, content: '系统首次检测到此风险' }
+                                    ]
+                                };
+                            });
+
+                            // 将漏洞数据添加到风险评估列表
+                            riskData.tableData = [...riskData.tableData, ...riskDataToAdd];
+                            renderRiskTable();
+
+                            // 存储历史数据
+                            storeHistoricalData(riskDataToAdd);
+                        }
+                    }
+                }
+            });
+
+            // 初始化柱状图
+            const barCtx = document.getElementById('riskBarChart').getContext('2d');
+            barChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: riskData.chartData.labels,
+                    datasets: [{
+                        label: '风险数量',
+                        data: riskData.chartData.barData,
+                        backgroundColor: [
+                            '#e63946',
+                            '#ff9f43',
+                            '#27ae60'
+                        ],
+                        borderColor: [
+                            '#e63946',
+                            '#ff9f43',
+                            '#27ae60'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // 初始化饼图
+            const pieCtx = document.getElementById('riskPieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: riskData.chartData.labels,
+                    datasets: [{
+                        data: riskData.chartData.pieData,
+                        backgroundColor: [
+                            '#e63946',
+                            '#ff9f43',
+                            '#27ae60'
+                        ],
+                        borderColor: [
+                            '#fff',
+                            '#fff',
+                            '#fff'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // 渲染表格数据
+            renderRiskTable();
+        });
+
+        // 将漏洞级别转换为风险级别
+        function VulnLevelToRiskLevel(level) {
+            switch (level) {
+                case 'high': return '高';
+                case 'medium': return '中';
+                case 'low': return '低';
+                default: return '低';
+            }
+        }
+
+        // 获取风险评分
+        function getRiskScore(level) {
+            switch (level) {
+                case 'high': return 8.5;
+                case 'medium': return 6.5;
+                case 'low': return 4.5;
+                default: return 5.0;
+            }
+        }
+
+        // 获取可能性
+        function getRiskPossibility(level) {
+            switch (level) {
+                case 'high': return 70;
+                case 'medium': return 50;
+                case 'low': return 30;
+                default: return 40;
+            }
+        }
+
+        // 渲染风险表格
+        function renderRiskTable(data = riskData.tableData) {
+            const tableBody = document.getElementById('riskTableBody');
+            tableBody.innerHTML = '';
+            
+            // 限制显示的数据数量为5条
+            const maxDisplayedItems = 5;
+            const displayedData = data.slice(0, maxDisplayedItems);
+            const historyData = data.slice(maxDisplayedItems);
+
+            // 存储历史数据到本地
+            localStorage.setItem('historyRiskData', JSON.stringify(historyData));
+
+            // 渲染显示的数据
+            displayedData.forEach(risk => {
+                const row = document.createElement('tr');
+                row.onclick = () => showRiskDetails(risk.id);
+                
+                // 确定趋势类
+                const trendClass = risk.trend === '上升' ? 'trend-up' : 'trend-down';
+                
+                row.innerHTML = `
+                    <td><span class="risk-priority priority-${risk.level.toLowerCase()}"></span></td>
+                    <td>${risk.name}</td>
+                    <td>${risk.score}</td>
+                    <td><span class="badge ${getRiskLevelClass(risk.level)}">${risk.level}</span></td>
+                    <td>${risk.assets}</td>
+                    <td><span class="risk-status status-${getStatusClass(risk.status)}">${risk.status}</span></td>
+                    <td><span class="risk-trend ${trendClass}">${risk.trendValue}</span></td>
+                    <td>${risk.lastUpdated}</td>
+                    <td>
+                        <button class="btn action-btn-outline">
+                            <i class="bi bi-arrow-right-square"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 获取风险等级样式类
+        function getRiskLevelClass(level) {
+            switch(level) {
+                case '高': return 'bg-danger';
+                case '中': return 'bg-warning text-dark';
+                case '低': return 'bg-success';
+                default: return '';
+            }
+        }
+
+        // 获取状态样式类
+        function getStatusClass(status) {
+            switch(status) {
+                case '新建': return 'new';
+                case '已审核': return 'reviewed';
+                case '已解决': return 'resolved';
+                default: return '';
+            }
+        }
+
+        // 显示风险详情
+        function showRiskDetails(id) {
+            // 查找对应的风险数据
+            const risk = riskData.tableData.find(item => item.id === id);
+            if (!risk) return;
+
+            // 更新详情部分的内容
+            document.getElementById('detail-risk-name').textContent = risk.name;
+            document.getElementById('detail-risk-level').textContent = `${risk.level}风险`;
+            document.getElementById('detail-risk-description').textContent = risk.description;
+            document.getElementById('detail-risk-assets').textContent = risk.assets;
+            document.getElementById('detail-risk-score').textContent = `${risk.score}/10`;
+            document.getElementById('detail-risk-score-bar').style.width = `${risk.score * 10}%`;
+            document.getElementById('detail-risk-possibility').style.width = `${risk.possibility}%`;
+            document.getElementById('detail-risk-possibility-value').textContent = `${risk.possibility}%`;
+            
+            // 更新建议措施
+            const recommendationsList = document.getElementById('detail-recommendations');
+            recommendationsList.innerHTML = '';
+            risk.recommendations.forEach(rec => {
+                const li = document.createElement('li');
+                li.textContent = rec;
+                recommendationsList.appendChild(li);
+            });
+            
+            // 更新相关资源
+            const resourcesList = document.getElementById('detail-resources');
+            resourcesList.innerHTML = '';
+            risk.resources.forEach(res => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                li.innerHTML = `
+                    ${res.name}
+                    <a href="${res.link}" class="btn btn-sm btn-outline-primary" target="_blank">查看</a>
+                `;
+                resourcesList.appendChild(li);
+            });
+            
+            // 更新风险历史
+            const historyList = document.getElementById('detail-risk-history');
+            historyList.innerHTML = '';
+            risk.history.forEach(hist => {
+                const div = document.createElement('div');
+                div.className = 'mb-3';
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">${hist.type}</span>
+                        <span class="text-muted small">${hist.date}</span>
+                    </div>
+                    <p class="mb-0">${hist.content}</p>
+                `;
+                historyList.appendChild(div);
+            });
+
+            // 显示详情部分，隐藏列表部分
+            document.getElementById('risk-list').style.display = 'none';
+            document.getElementById('risk-details').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 隐藏风险详情
+        function hideRiskDetails() {
+            document.getElementById('risk-details').style.display = 'none';
+            document.getElementById('risk-list').style.display = 'block';
+        }
+
+        // 搜索对象为空或undefined时进行全匹配
+        function isEmptyOrUndefined(obj) {
+            return obj === undefined || obj === null || obj === '';
+        }
+
+        // 搜索结果筛选
+        function searchRisks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const tableBody = document.getElementById('riskTableBody');
+            const rows = tableBody.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                const nameCell = row.cells[1].textContent.toLowerCase();
+                const statusCell = row.cells[5].textContent.toLowerCase();
+                
+                if (nameCell.includes(searchTerm) || statusCell.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // 加载更多功能
+        function loadMoreRisks() {
+            const historicalData = JSON.parse(localStorage.getItem('historyRiskData')) || [];
+            
+            if (historicalData.length === 0) {
+                alert('没有更多历史数据了');
+                return;
+            }
+
+            const tableBody = document.getElementById('riskTableBody');
+            
+            // 每次加载5条历史数据
+            const maxLoadItems = 5;
+            const loadItems = historicalData.slice(0, maxLoadItems);
+            
+            loadItems.forEach(risk => {
+                const row = document.createElement('tr');
+                row.onclick = () => showRiskDetails(risk.id);
+                
+                // 确定趋势类
+                const trendClass = risk.trend === '上升' ? 'trend-up' : 'trend-down';
+                
+                row.innerHTML = `
+                    <td><span class="risk-priority priority-${risk.level.toLowerCase()}"></span></td>
+                    <td>${risk.name}</td>
+                    <td>${risk.score}</td>
+                    <td><span class="badge ${getRiskLevelClass(risk.level)}">${risk.level}</span></td>
+                    <td>${risk.assets}</td>
+                    <td><span class="risk-status status-${getStatusClass(risk.status)}">${risk.status}</span></td>
+                    <td><span class="risk-trend ${trendClass}">${risk.trendValue}</span></td>
+                    <td>${risk.lastUpdated}</td>
+                    <td>
+                        <button class="btn action-btn-outline">
+                            <i class="bi bi-arrow-right-square"></i>
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+
+            // 从历史数据中移除已加载的数据
+            const remainingHistoricalData = historicalData.slice(maxLoadItems);
+            localStorage.setItem('historyRiskData', JSON.stringify(remainingHistoricalData));
+        }
+
+        // 存储历史数据
+        function storeHistoricalData(newRisks) {
+            // 获取现有的历史数据
+            let historicalData = JSON.parse(localStorage.getItem('historicalRiskData')) || [];
+
+            // 将新的风险数据添加到历史数据中
+            historicalData = [...newRisks, ...historicalData];
+
+            // 限制历史数据的数量（例如，最多存储20条记录）
+            if (historicalData.length > 20) {
+                historicalData = historicalData.slice(0, 20);
+            }
+
+            // 存储更新后的历史数据
+            localStorage.setItem('historicalRiskData', JSON.stringify(historicalData));
+            console.log('历史数据已更新:', historicalData);
+        }
+
+        // 导出报告功能
+        document.getElementById('exportReport').addEventListener('click', function() {
+            // 创建一个新的 jsPDF 实例
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // 添加标题
+            doc.setFontSize(18);
+            doc.text('风险评估报告', 14, 20);
+
+            // 添加生成日期
+            doc.setFontSize(12);
+            doc.text(`生成日期: ${new Date().toLocaleDateString()}`, 14, 25);
+
+            // 添加表格数据
+            doc.setFontSize(14);
+            doc.text('风险评估列表', 14, 40);
+
+            // 表格数据
+            const headers = [];
+            const headerRow = document.querySelector('#riskTable thead tr');
+            headerRow.querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent);
+            });
+
+            const data = [];
+            const rows = document.querySelector('#riskTable tbody').querySelectorAll('tr');
+            rows.forEach(row => {
+                const rowData = [];
+                row.querySelectorAll('td').forEach((td, index) => {
+                    // 处理特殊样式（如 severity-high）
+                    if (td.classList.contains('severity-high') || 
+                        td.classList.contains('severity-medium') || 
+                        td.classList.contains('severity-low')) {
+                        rowData.push(td.textContent.trim());
+                    } else {
+                        rowData.push(td.textContent.trim());
+                    }
+                });
+                data.push(rowData);
+            });
+
+            // 合并表头和数据
+            const wsData = [headers, ...data];
+
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '风险评估列表');
+
+            // 保存 PDF
+            doc.save('风险评估报告.pdf');
+        });
+
+        // 筛选功能
+        document.getElementById('showFilter').addEventListener('click', function() {
+            const filterPanel = document.getElementById('filterPanel');
+            if (filterPanel.style.display === 'none') {
+                filterPanel.style.display = 'block';
+            } else {
+                filterPanel.style.display = 'none';
+            }
+        });
+
+        document.getElementById('resetFilter').addEventListener('click', function() {
+            document.getElementById('filterLevel').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterTrend').value = '';
+            renderRiskTable();
+        });
+
+        document.getElementById('applyFilter').addEventListener('click', function() {
+            const levelFilter = document.getElementById('filterLevel').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const trendFilter = document.getElementById('filterTrend').value;
+
+            const filteredData = riskData.tableData.filter(risk => {
+                const levelMatch = isEmptyOrUndefined(levelFilter) || risk.level === levelFilter;
+                const statusMatch = isEmptyOrUndefined(statusFilter) || risk.status === statusFilter;
+                const trendMatch = isEmptyOrUndefined(trendFilter) || risk.trend === trendFilter;
+                return levelMatch && statusMatch && trendMatch;
+            });
+
+            renderRiskTable(filteredData);
+        });
+    </script>
+    <hr>
+    <a href="index.html" ><h align="center">返回</h>
+</body>
+</html>
